@@ -1,8 +1,24 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 
-// Use dedicated API URL for production, fall back to local for development
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+// Production API URL - hardcoded for reliability
+// In development, this will use localhost
+const getApiBaseUrl = () => {
+  // In browser, check environment variable or window location
+  if (typeof window !== "undefined") {
+    return (
+      process.env.NEXT_PUBLIC_API_URL ||
+      "https://api-c4miilp9y-dmamediais-projects.vercel.app"
+    );
+  }
+  // On server, use environment variable or production URL
+  return (
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://api-c4miilp9y-dmamediais-projects.vercel.app"
+  );
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 let apiClient: AxiosInstance | null = null;
 
