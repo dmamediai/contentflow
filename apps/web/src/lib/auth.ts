@@ -1,6 +1,37 @@
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { api } from "./api-client";
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      email: string;
+      name?: string | null;
+      image?: string | null;
+    };
+    accessToken?: string;
+    teamId?: string;
+  }
+  interface User {
+    id: string;
+    email: string;
+    name?: string | null;
+    image?: string | null;
+    accessToken?: string;
+    teamId?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string;
+    email?: string;
+    accessToken?: string;
+    teamId?: string;
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
