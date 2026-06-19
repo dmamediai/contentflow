@@ -1,31 +1,5 @@
 {
-  "version": 2,
   "buildCommand": "pnpm run build",
   "outputDirectory": ".next",
-  "monorepoRoot": ".",
-  "framework": "nextjs",
-  "installCommand": "pnpm install",
-  "env": {
-    "NEXTAUTH_SECRET": {
-      "description": "NextAuth secret key for JWT signing",
-      "required": true
-    },
-    "NEXTAUTH_URL": {
-      "description": "Next.js authentication URL",
-      "value": "https://contentflow.vercel.app"
-    },
-    "NEXT_PUBLIC_APP_URL": {
-      "description": "Public application URL",
-      "value": "https://contentflow.vercel.app"
-    },
-    "NEXT_PUBLIC_API_URL": {
-      "description": "Public API URL",
-      "value": "https://api.contentflow.vercel.app"
-    },
-    "DATABASE_URL": {
-      "description": "Supabase PostgreSQL connection string",
-      "required": true
-    }
-  },
-  "public": true
+  "installCommand": "pnpm install --frozen-lockfile"
 }
