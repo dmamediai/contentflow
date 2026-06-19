@@ -1,6 +1,5 @@
 {
-  "buildCommand": "pnpm run build",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm build",
   "installCommand": "pnpm install --frozen-lockfile",
   "env": {
     "NODE_ENV": "production"
