@@ -30,6 +30,7 @@ model User {
   teamMembers           TeamMember[]
   createdTeams          Team[]
   profile               UserProfile?
+  mcpApiKeys            MCPApiKey[]  @relation("MCPApiKeys")
 
   @@index([email])
 }
