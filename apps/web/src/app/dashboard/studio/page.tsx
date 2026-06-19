@@ -60,20 +60,32 @@ export default function AIStudioPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/api/ai/generate-post", {
-        topic: generateTopic,
-        platform: generatePlatform,
-        tone: generateTone,
-        includeHashtags: generateOptions.includeHashtags,
-        includeEmojis: generateOptions.includeEmojis,
-        includeCallToAction: generateOptions.includeCallToAction,
-      });
 
-      setResult(response.data.data.content);
+      // Demo mode - simulate API delay then generate demo content
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const demoContent = `🚀 Excited to share insights on ${generateTopic}!
+
+In today's digital landscape, understanding ${generateTopic} is crucial for success. Here's what you need to know:
+
+1️⃣ Stay informed about the latest trends
+2️⃣ Adapt your strategy accordingly
+3️⃣ Embrace continuous learning
+
+What's your take on ${generateTopic}? Let me know in the comments! 💭
+
+#${generateTopic.replace(/\s+/g, "")} #insights #socialmedia`;
+
+      setResult(demoContent);
       setResultType("text");
-      toast.success("Post generated!");
+      toast.success("Post generated! (Demo mode - Backend required for real AI)");
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || "Failed to generate post");
+      console.error("Generate error:", error);
+      toast.info("Demo mode: Showing sample content");
+      setResult(
+        `Sample post about ${generateTopic} - Backend not configured yet`
+      );
+      setResultType("text");
     } finally {
       setLoading(false);
     }
@@ -87,16 +99,27 @@ export default function AIStudioPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/api/ai/rewrite", {
-        content: rewriteContent,
-        tone: rewriteTone,
-      });
 
-      setResult(response.data.data.rewrittenContent);
+      // Demo mode
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const rewriteMap: { [key: string]: string } = {
+        professional: "We are excited to present...",
+        casual: "Hey, check this out...",
+        funny: "Buckle up, this is hilarious...",
+        engaging: "You won't believe this...",
+        educational: "Let me teach you something valuable...",
+      };
+
+      const rewritten = `[${rewriteTone}] ${rewriteMap[rewriteTone]} ${rewriteContent.substring(0, 50)}...`;
+
+      setResult(rewritten);
       setResultType("text");
-      toast.success("Content rewritten!");
+      toast.success("Content rewritten! (Demo mode)");
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || "Failed to rewrite content");
+      toast.info("Demo mode: Showing rewritten sample");
+      setResult(`Rewritten content in ${rewriteTone} tone`);
+      setResultType("text");
     } finally {
       setLoading(false);
     }
@@ -110,16 +133,23 @@ export default function AIStudioPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/api/ai/hashtags", {
-        content: hashtagsContent,
-        count: hashtagsCount,
+
+      // Demo mode
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const hashtags = Array.from({ length: hashtagsCount }, (_, i) => {
+        const topics = hashtagsContent.split(" ");
+        const word = topics[i % topics.length];
+        return `#${word.toLowerCase().replace(/[^a-z0-9]/g, "")}${i + 1}`;
       });
 
-      setResult(response.data.data.hashtags);
+      setResult(hashtags);
       setResultType("list");
-      toast.success("Hashtags generated!");
+      toast.success("Hashtags generated! (Demo mode)");
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || "Failed to generate hashtags");
+      toast.info("Demo mode: Showing sample hashtags");
+      setResult(["#socialmedia", "#content", "#marketing", "#demo"]);
+      setResultType("list");
     } finally {
       setLoading(false);
     }
@@ -133,16 +163,25 @@ export default function AIStudioPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/api/ai/hooks", {
-        content: hooksContent,
-        count: hooksCount,
-      });
 
-      setResult(response.data.data.hooks);
+      // Demo mode
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const demoHooks = [
+        `🎯 Stop! You need to know this about ${hooksContent.split(" ")[0]}`,
+        `⚡ This is the #1 mistake people make with ${hooksContent.split(" ")[0]}`,
+        `💡 Here's what nobody tells you about ${hooksContent.split(" ")[0]}`,
+        `🔥 The truth about ${hooksContent.split(" ")[0]} (revealed)`,
+        `😲 Wait until you see what happens with ${hooksContent.split(" ")[0]}`,
+      ];
+
+      setResult(demoHooks.slice(0, hooksCount));
       setResultType("list");
-      toast.success("Hooks generated!");
+      toast.success("Hooks generated! (Demo mode)");
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || "Failed to generate hooks");
+      toast.info("Demo mode: Showing sample hooks");
+      setResult(["Did you know?", "Here's a secret...", "This will shock you"]);
+      setResultType("list");
     } finally {
       setLoading(false);
     }
@@ -156,16 +195,28 @@ export default function AIStudioPage() {
 
     try {
       setLoading(true);
-      const response = await api.post("/api/ai/cta", {
-        context: ctaContext,
-        count: ctaCount,
-      });
 
-      setResult(response.data.data.ctas);
+      // Demo mode
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const demoCTAs = [
+        `Learn more →`,
+        `Get started today →`,
+        `Join us now →`,
+        `Discover the difference →`,
+        `Claim your spot →`,
+        `See how it works →`,
+        `Don't miss out →`,
+        `Take action now →`,
+      ];
+
+      setResult(demoCTAs.slice(0, ctaCount));
       setResultType("list");
-      toast.success("CTAs generated!");
+      toast.success("CTAs generated! (Demo mode)");
     } catch (error: any) {
-      toast.error(error.response?.data?.error?.message || "Failed to generate CTAs");
+      toast.info("Demo mode: Showing sample CTAs");
+      setResult(["Learn more →", "Get started →", "Join us →"]);
+      setResultType("list");
     } finally {
       setLoading(false);
     }
