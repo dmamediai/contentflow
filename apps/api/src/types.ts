@@ -77,12 +77,25 @@ export interface PaginatedResponse<T> {
 
 // Error Handling
 export class ApiError extends Error {
+  public statusCode: number;
+  public code: string;
+  public details?: any;
+
   constructor(
-    public statusCode: number,
-    public code: string,
-    message: string
+    statusCodeOrMessage: number | string,
+    codeOrMessage?: string,
+    message?: string
   ) {
-    super(message);
+    // Handle both old and new signatures
+    if (typeof statusCodeOrMessage === 'number') {
+      super(message || codeOrMessage || '');
+      this.statusCode = statusCodeOrMessage;
+      this.code = codeOrMessage || 'INTERNAL_SERVER_ERROR';
+    } else {
+      super(statusCodeOrMessage);
+      this.statusCode = 500;
+      this.code = codeOrMessage || 'INTERNAL_SERVER_ERROR';
+    }
     this.name = "ApiError";
   }
 }
@@ -95,4 +108,17 @@ export const ErrorCodes = {
   CONFLICT: "CONFLICT",
   INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
   SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
+  EXPIRED_TOKEN: "EXPIRED_TOKEN",
+  INVALID_TOKEN: "INVALID_TOKEN",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
 } as const;
+
+export type Permission =
+  | "ai:write"
+  | "ai:read"
+  | "social:write"
+  | "social:read"
+  | "analytics:write"
+  | "analytics:read"
+  | "admin:write"
+  | "admin:read";
