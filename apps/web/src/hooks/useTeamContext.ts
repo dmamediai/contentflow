@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { Team } from "@social-media-saas/types";
+import type { Team } from "@/types";
 
 interface TeamContextStore {
   currentTeam: Team | null;

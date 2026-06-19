@@ -1,5 +1,5 @@
 import prisma from "../lib/db";
-import { ApiError, ErrorCodes, MediaType } from "@social-media-saas/types";
+import { ApiError, ErrorCodes, MediaType } from "../types";
 import { v4 as uuidv4 } from "uuid";
 
 export interface UploadMediaData {

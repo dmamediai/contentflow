@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import prisma from "../lib/db";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 import { slugify } from "../utils/string";
 
 export class TeamService {

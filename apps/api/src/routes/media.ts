@@ -4,7 +4,7 @@ import { authenticateJWT, AuthRequest } from "../middleware/auth";
 import { teamContext, authorize } from "../middleware/rbac";
 import { MediaService } from "../services/media.service";
 import { logger } from "../lib/logger";
-import type { MediaType } from "@social-media-saas/types";
+import type { MediaType } from "../types";
 
 const router = Router();
 

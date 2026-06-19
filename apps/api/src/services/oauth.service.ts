@@ -2,7 +2,7 @@ import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
 import prisma from "../lib/db";
 import { logger } from "../lib/logger";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 
 export type OAuthProvider = "TWITTER" | "LINKEDIN" | "FACEBOOK" | "INSTAGRAM" | "THREADS";
 

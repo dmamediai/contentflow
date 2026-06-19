@@ -1,5 +1,5 @@
 import { Response, NextFunction } from "express";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 import { AuthRequest } from "./auth";
 import prisma from "../lib/db";
 

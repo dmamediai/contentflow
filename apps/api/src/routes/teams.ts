@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authenticateJWT, AuthRequest } from "../middleware/auth";
 import { authorize, requireRole, teamContext } from "../middleware/rbac";
 import { TeamService } from "../services/team.service";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 import { logger } from "../lib/logger";
 
 const router = Router();

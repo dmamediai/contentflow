@@ -1,7 +1,7 @@
 import axios from "axios";
 import prisma from "../lib/db";
 import { logger } from "../lib/logger";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 
 export type SocialPlatform = "FACEBOOK" | "INSTAGRAM" | "LINKEDIN" | "TWITTER" | "THREADS";
 

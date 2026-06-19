@@ -1,6 +1,6 @@
 import prisma from "../lib/db";
 import { logger } from "../lib/logger";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 
 export interface PostMetrics {
   postId: string;

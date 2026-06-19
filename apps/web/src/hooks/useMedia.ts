@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api-client";
-import type { Media, PaginatedResponse } from "@social-media-saas/types";
+import type { Media, PaginatedResponse } from "@/types";
 
 interface UseMediaOptions {
   page?: number;

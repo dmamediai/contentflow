@@ -1,5 +1,5 @@
 import prisma from "../lib/db";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 import { logger } from "../lib/logger";
 import { z } from "zod";
 

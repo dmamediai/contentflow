@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Users, Plus, MoreVertical } from "lucide-react";
 import Link from "next/link";
 import { CreateTeamDialog } from "@/components/teams/create-team-dialog";
-import type { Team } from "@social-media-saas/types";
+import type { Team } from "@/types";
 
 export default function TeamsPage() {
   const { teams, loading, createTeam } = useTeams();

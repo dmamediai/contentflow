@@ -1,7 +1,7 @@
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "../lib/db";
-import { ApiError, ErrorCodes } from "@social-media-saas/types";
+import { ApiError, ErrorCodes } from "../types";
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || "your-secret-key";
 const JWT_EXPIRATION = "1h";

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api-client";
-import type { Team, PaginatedResponse } from "@social-media-saas/types";
+import type { Team, PaginatedResponse } from "@/types";
 
 interface UseTeamsOptions {
   page?: number;

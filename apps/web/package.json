@@ -61,8 +61,6 @@
     "eslint-config-next": "^15.0.0",
     "prettier": "^3.1.0",
     "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "@social-media-saas/db": "*",
-    "@social-media-saas/types": "*"
+    "postcss": "^8.4.32"
   }
 }
