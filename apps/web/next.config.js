@@ -1,12 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   pageExtensions: ["ts", "tsx"],
-  experimental: {
-    serverActions: true,
-    typedRoutes: true,
-  },
+  typedRoutes: true,
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
