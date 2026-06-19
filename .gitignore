@@ -65,8 +65,8 @@ prisma/migrations/
 *.mov
 
 # Large media
-media/
-uploads/
+/media/
+/uploads/
 
 # Local database
 *.db
