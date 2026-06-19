@@ -44,7 +44,12 @@ export function useMedia(options: UseMediaOptions = {}) {
         const data = response.data as PaginatedResponse<Media>;
 
         setMedia(data.data);
-        setPagination(data.pagination);
+        setPagination({
+          page: data.pagination.page,
+          limit: data.pagination.pageSize,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages,
+        });
       } catch (err: any) {
         setError(err.response?.data?.error?.message || "Failed to fetch media");
       } finally {
