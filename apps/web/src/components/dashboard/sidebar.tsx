@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   X,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
