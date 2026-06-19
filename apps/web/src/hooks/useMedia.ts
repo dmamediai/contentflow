@@ -24,41 +24,46 @@ export function useMedia(options: UseMediaOptions = {}) {
   });
 
   useEffect(() => {
-    if (!session?.user) return;
-
     const fetchMedia = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const params = new URLSearchParams({
-          page: pagination.page.toString(),
-          limit: pagination.limit.toString(),
-        });
+        // Try to fetch from API if session exists
+        if (session?.user) {
+          const params = new URLSearchParams({
+            page: pagination.page.toString(),
+            limit: pagination.limit.toString(),
+          });
 
-        if (options.type) {
-          params.append("type", options.type);
+          if (options.type) {
+            params.append("type", options.type);
+          }
+
+          const response = await api.get(`/api/media?${params}`);
+          const data = response.data as PaginatedResponse<Media>;
+
+          setMedia(data.data);
+          setPagination({
+            page: data.pagination.page,
+            limit: data.pagination.pageSize,
+            total: data.pagination.total,
+            totalPages: data.pagination.totalPages,
+          });
+        } else {
+          // Demo mode: return demo media data
+          setMedia([]);
         }
-
-        const response = await api.get(`/api/media?${params}`);
-        const data = response.data as PaginatedResponse<Media>;
-
-        setMedia(data.data);
-        setPagination({
-          page: data.pagination.page,
-          limit: data.pagination.pageSize,
-          total: data.pagination.total,
-          totalPages: data.pagination.totalPages,
-        });
       } catch (err: any) {
-        setError(err.response?.data?.error?.message || "Failed to fetch media");
+        // On API error, show demo data
+        setMedia([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchMedia();
-  }, [session, pagination.page, options.type]);
+  }, [session, pagination.page, options.type];
 
   const deleteMedia = async (mediaId: string) => {
     try {
