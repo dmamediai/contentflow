@@ -1,8 +1,8 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { getSession } from "next-auth/react";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-const API_BASE_URL = `${BASE_URL}/api`;
+// Use dedicated API URL for production, fall back to local for development
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 let apiClient: AxiosInstance | null = null;
 
