@@ -11,7 +11,8 @@ export default function DashboardPage() {
   const { data: session } = useSession();
   const { teams, loading } = useTeams();
 
-  const currentTeam = teams[0];
+  // Demo mode: use dummy data if not authenticated
+  const currentTeam = teams[0] || { id: "demo", name: "Demo Team" };
 
   const stats = [
     {
