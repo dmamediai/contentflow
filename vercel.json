@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "buildCommand": "cd apps/web && npm run build",
+  "outputDirectory": "apps/web/.next",
+  "monorepoRoot": ".",
+  "framework": "nextjs",
+  "env": {
+    "NEXTAUTH_SECRET": {
+      "description": "NextAuth secret key for JWT signing",
+      "required": true
+    },
+    "NEXTAUTH_URL": {
+      "description": "Next.js authentication URL",
+      "value": "https://contentflow.vercel.app"
+    },
+    "NEXT_PUBLIC_APP_URL": {
+      "description": "Public application URL",
+      "value": "https://contentflow.vercel.app"
+    },
+    "NEXT_PUBLIC_API_URL": {
+      "description": "Public API URL",
+      "value": "https://api.contentflow.vercel.app"
+    },
+    "DATABASE_URL": {
+      "description": "Supabase PostgreSQL connection string",
+      "required": true
+    }
+  },
+  "public": true
+}
