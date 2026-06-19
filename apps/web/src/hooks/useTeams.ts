@@ -39,7 +39,12 @@ export function useTeams(options: UseTeamsOptions = {}) {
 
         const data = response.data as PaginatedResponse<Team>;
         setTeams(data.data);
-        setPagination(data.pagination);
+        setPagination({
+          page: data.pagination.page,
+          limit: data.pagination.pageSize,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages,
+        });
       } catch (err: any) {
         setError(err.response?.data?.error?.message || "Failed to fetch teams");
       } finally {
