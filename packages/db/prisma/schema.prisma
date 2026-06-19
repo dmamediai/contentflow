@@ -1,0 +1,600 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// AUTHENTICATION & TEAM MANAGEMENT
+// ============================================================================
+
+model User {
+  id                    String      @id @default(cuid())
+  email                 String      @unique
+  emailVerified         DateTime?
+  name                  String?
+  image                 String?
+  password              String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  teamMembers           TeamMember[]
+  createdTeams          Team[]
+  profile               UserProfile?
+
+  @@index([email])
+}
+
+model UserProfile {
+  id                    String      @id @default(cuid())
+  userId                String      @unique
+  bio                   String?
+  website               String?
+  location              String?
+  company               String?
+  role                  String?
+  avatar                String?
+  preferences           Json        @default("{}")
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String      @id @default(cuid())
+  userId                String
+  type                  String
+  provider              String
+  providerAccountId     String
+  accessToken           String?     @db.Text
+  refreshToken          String?     @db.Text
+  accessTokenExpiresAt  DateTime?
+  scope                 String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id                    String      @id @default(cuid())
+  sessionToken          String      @unique
+  userId                String
+  expires               DateTime
+  createdAt             DateTime    @default(now())
+
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============================================================================
+// TEAM & ORGANIZATION
+// ============================================================================
+
+model Team {
+  id                    String      @id @default(cuid())
+  name                  String
+  slug                  String      @unique
+  image                 String?
+  description           String?
+  createdBy             String
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Relations
+  members               TeamMember[]
+  subscription          Subscription?
+  socialAccounts        SocialAccount[]
+  posts                 Post[]
+  media                 Media[]
+  aiUsageLogs           AiUsageLog[]
+  analyticsEvents       AnalyticsEvent[]
+  apiKeys               ApiKey[]
+
+  creator               User        @relation(fields: [createdBy], references: [id])
+
+  @@index([createdBy])
+  @@index([slug])
+}
+
+model TeamMember {
+  id                    String      @id @default(cuid())
+  teamId                String
+  userId                String
+  role                  TeamRole    @default(MEMBER)
+  permissions           String[]    @default([])
+  joinedAt              DateTime    @default(now())
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user                  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+// ============================================================================
+// SUBSCRIPTION & BILLING
+// ============================================================================
+
+model Subscription {
+  id                    String      @id @default(cuid())
+  teamId                String      @unique
+  stripeCustomerId      String?     @unique
+  stripeSubscriptionId  String?     @unique
+  plan                  PlanType    @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  // Usage tracking
+  postsUsed             Int         @default(0)
+  postsLimit            Int         @default(0)
+  aiCreditsUsed         Int         @default(0)
+  aiCreditsLimit        Int         @default(0)
+  teamMembersUsed       Int         @default(1)
+  teamMembersLimit      Int         @default(1)
+  storageUsed           Int         @default(0)
+  storageLimit          Int         @default(0)
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([stripeCustomerId])
+}
+
+enum PlanType {
+  FREE
+  PRO
+  AGENCY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INACTIVE
+}
+
+model Invoice {
+  id                    String      @id @default(cuid())
+  stripeInvoiceId       String      @unique
+  customerId            String
+  amount                Int
+  currency              String
+  status                String
+  paidAt                DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([customerId])
+}
+
+// ============================================================================
+// SOCIAL MEDIA ACCOUNTS & CONNECTIONS
+// ============================================================================
+
+model SocialAccount {
+  id                    String      @id @default(cuid())
+  teamId                String
+  platform              SocialPlatform
+  platformAccountId     String
+  displayName           String
+  username              String
+  profileUrl            String?
+  profileImage          String?
+  accessToken           String?     @db.Text
+  refreshToken          String?     @db.Text
+  accessTokenExpiresAt  DateTime?
+  scope                 String?
+  meta                  Json        @default("{}")
+  connectedAt           DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  posts                 Post[]
+  analyticsEvents       AnalyticsEvent[]
+
+  @@unique([teamId, platform, platformAccountId])
+  @@index([teamId])
+  @@index([platform])
+}
+
+enum SocialPlatform {
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  TWITTER
+  THREADS
+  TIKTOK
+  YOUTUBE
+  BLUESKY
+}
+
+// ============================================================================
+// CONTENT & POSTS
+// ============================================================================
+
+model Post {
+  id                    String      @id @default(cuid())
+  teamId                String
+  title                 String?
+  content               String      @db.Text
+  contentType           ContentType @default(TEXT)
+  status                PostStatus  @default(DRAFT)
+  scheduledAt           DateTime?
+  publishedAt           DateTime?
+  aiGeneratedData       Json?
+
+  // Multi-platform support
+  socialAccounts        SocialAccount[]
+
+  // Media attachments
+  media                 Media[]
+
+  // Repurposing metadata
+  sourceType            SourceType?
+  sourceUrl             String?
+  repurposedFrom        String?
+  repurposedPlatforms   String[]    @default([])
+
+  // Engagement data
+  likes                 Int         @default(0)
+  comments              Int         @default(0)
+  shares                Int         @default(0)
+  impressions           Int         @default(0)
+  clicks                Int         @default(0)
+
+  // Carousel support
+  slides                CarouselSlide[]
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  createdBy             String?
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  analyticsEvents       AnalyticsEvent[]
+  aiUsageLogs           AiUsageLog[]
+
+  @@index([teamId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([publishedAt])
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum ContentType {
+  TEXT
+  IMAGE
+  VIDEO
+  CAROUSEL
+  REPOST
+}
+
+enum SourceType {
+  BLOG
+  YOUTUBE
+  PODCAST
+  ARTICLE
+  MANUAL
+}
+
+// ============================================================================
+// CAROUSEL & SLIDES
+// ============================================================================
+
+model CarouselSlide {
+  id                    String      @id @default(cuid())
+  postId                String
+  order                 Int
+  content               String      @db.Text
+  mediaUrl              String?
+  template              String?
+  customData            Json?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  post                  Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@unique([postId, order])
+}
+
+// ============================================================================
+// MEDIA LIBRARY
+// ============================================================================
+
+model Media {
+  id                    String      @id @default(cuid())
+  teamId                String
+  name                  String
+  type                  MediaType
+  url                   String      @db.Text
+  publicUrl             String?     @db.Text
+  size                  Int
+  width                 Int?
+  height                Int?
+  duration              Int?
+  mimeType              String
+
+  // AI-generated metadata
+  isAiGenerated         Boolean     @default(false)
+  aiModel               String?
+  aiPrompt              String?     @db.Text
+
+  // Storage
+  storageKey            String      @unique
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  posts                 Post[]
+
+  @@index([teamId])
+  @@index([type])
+  @@index([isAiGenerated])
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  OTHER
+}
+
+// ============================================================================
+// ANALYTICS
+// ============================================================================
+
+model AnalyticsEvent {
+  id                    String      @id @default(cuid())
+  teamId                String
+  postId                String?
+  socialAccountId       String?
+  eventType             EventType
+  platformEventId       String?
+
+  // Event data
+  metric                String
+  value                 Int         @default(0)
+  metadata              Json?
+
+  // Timestamp
+  eventDate             DateTime
+  createdAt             DateTime    @default(now())
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  post                  Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+  socialAccount         SocialAccount?  @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([postId])
+  @@index([socialAccountId])
+  @@index([eventType])
+  @@index([eventDate])
+}
+
+enum EventType {
+  LIKE
+  COMMENT
+  SHARE
+  IMPRESSION
+  CLICK
+  SAVE
+  REPOST
+  MENTION
+  FOLLOWER_GAINED
+  FOLLOWER_LOST
+}
+
+model AnalyticsSummary {
+  id                    String      @id @default(cuid())
+  teamId                String      @unique
+
+  // Growth metrics
+  totalFollowers        Int         @default(0)
+  followerGrowth        Float       @default(0)
+
+  // Engagement
+  avgEngagementRate     Float       @default(0)
+  totalImpressions      Int         @default(0)
+  totalEngagements      Int         @default(0)
+
+  // Content
+  totalPosts            Int         @default(0)
+  publishedPosts        Int         @default(0)
+  scheduledPosts        Int         @default(0)
+
+  // Performance
+  topPost               String?
+  topPostEngagements    Int         @default(0)
+
+  period                String      // "daily", "weekly", "monthly"
+  generatedAt           DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([teamId])
+}
+
+// ============================================================================
+// AI USAGE & COSTS
+// ============================================================================
+
+model AiUsageLog {
+  id                    String      @id @default(cuid())
+  teamId                String
+  postId                String?
+  model                 String      // "gpt-4", "claude-3", "gemini-pro"
+  operation             AiOperation
+  promptTokens          Int         @default(0)
+  completionTokens      Int         @default(0)
+  totalTokens           Int         @default(0)
+  costUsd               Float       @default(0)
+  metadata              Json?
+  createdAt             DateTime    @default(now())
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  post                  Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
+  @@index([model])
+  @@index([createdAt])
+}
+
+enum AiOperation {
+  GENERATE_POST
+  REWRITE
+  EXPAND
+  SUMMARIZE
+  TRANSLATE
+  GENERATE_HOOK
+  GENERATE_CTA
+  GENERATE_HASHTAGS
+  REPURPOSE_CONTENT
+  GENERATE_CAROUSEL
+}
+
+// ============================================================================
+// API KEYS & INTEGRATIONS
+// ============================================================================
+
+model ApiKey {
+  id                    String      @id @default(cuid())
+  teamId                String
+  name                  String
+  key                   String      @unique
+  lastUsedAt            DateTime?
+  expiresAt             DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  team                  Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([key])
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id                    String      @id @default(cuid())
+  teamId                String?
+  userId                String?
+  action                String
+  resource              String
+  resourceId            String?
+  changes               Json?
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime    @default(now())
+
+  @@index([teamId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// FEATURE FLAGS
+// ============================================================================
+
+model FeatureFlag {
+  id                    String      @id @default(cuid())
+  name                  String      @unique
+  description           String?
+  enabled               Boolean     @default(false)
+  rolloutPercentage     Int         @default(0)
+  rules                 Json?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([name])
+}
+
+model FeatureFlagVariant {
+  id                    String      @id @default(cuid())
+  teamId                String
+  flagName              String
+  enabled               Boolean
+  variant               String?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@unique([teamId, flagName])
+  @@index([teamId])
+}
+
+// ============================================================================
+// MCP (MODEL CONTEXT PROTOCOL) - AI CLIENT INTEGRATION
+// ============================================================================
+
+model MCPApiKey {
+  id                    String      @id @default(cuid())
+  key                   String      @unique
+  userId                String
+  revoked               Boolean     @default(false)
+  lastUsedAt            DateTime?
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  user                  User        @relation("MCPApiKeys", fields: [userId], references: [id], onDelete: Cascade)
+  requestLogs           MCPRequestLog[]
+
+  @@index([userId])
+  @@index([key])
+}
+
+model MCPRequestLog {
+  id                    String      @id @default(cuid())
+  apiKeyId              String
+  userId                String
+  toolName              String
+  input                 Json
+  status                String      @default("success")
+  errorMessage          String?
+  createdAt             DateTime    @default(now())
+
+  apiKey                MCPApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+
+  @@index([apiKeyId])
+  @@index([userId])
+  @@index([toolName])
+  @@index([createdAt])
+}
