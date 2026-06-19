@@ -63,7 +63,7 @@ export function useMedia(options: UseMediaOptions = {}) {
     };
 
     fetchMedia();
-  }, [session, pagination.page, options.type];
+  }, [session, pagination.page, options.type]);
 
   const deleteMedia = async (mediaId: string) => {
     try {
