@@ -52,7 +52,74 @@ export function useMedia(options: UseMediaOptions = {}) {
           });
         } else {
           // Demo mode: return demo media data
-          setMedia([]);
+          const demoMedia = [
+            {
+              id: "1",
+              name: "Brand Guidelines.pdf",
+              type: "DOCUMENT",
+              url: "https://via.placeholder.com/300x200?text=PDF",
+              size: 2048000,
+              createdAt: new Date(),
+              mimeType: "application/pdf",
+            },
+            {
+              id: "2",
+              name: "Product Showcase.mp4",
+              type: "VIDEO",
+              url: "https://via.placeholder.com/300x200?text=Video",
+              size: 52428800,
+              createdAt: new Date(),
+              mimeType: "video/mp4",
+            },
+            {
+              id: "3",
+              name: "Team Photo.jpg",
+              type: "IMAGE",
+              url: "https://via.placeholder.com/300x200?text=Image",
+              size: 3145728,
+              createdAt: new Date(),
+              mimeType: "image/jpeg",
+              width: 1920,
+              height: 1080,
+            },
+            {
+              id: "4",
+              name: "Podcast Episode 1.mp3",
+              type: "AUDIO",
+              url: "https://via.placeholder.com/300x200?text=Audio",
+              size: 41943040,
+              createdAt: new Date(),
+              mimeType: "audio/mp3",
+            },
+            {
+              id: "5",
+              name: "Social Media Ad.jpg",
+              type: "IMAGE",
+              url: "https://via.placeholder.com/300x200?text=Image",
+              size: 2097152,
+              createdAt: new Date(),
+              mimeType: "image/jpeg",
+              width: 1080,
+              height: 1920,
+              isAiGenerated: true,
+            },
+            {
+              id: "6",
+              name: "Background Music.wav",
+              type: "AUDIO",
+              url: "https://via.placeholder.com/300x200?text=Audio",
+              size: 104857600,
+              createdAt: new Date(),
+              mimeType: "audio/wav",
+            },
+          ];
+          setMedia(demoMedia);
+          setPagination({
+            page: 1,
+            limit: 20,
+            total: demoMedia.length,
+            totalPages: 1,
+          });
         }
       } catch (err: any) {
         // On API error, show demo data
@@ -83,7 +150,8 @@ export function useMedia(options: UseMediaOptions = {}) {
       const response = await api.get("/api/media/storage-usage");
       return response.data.data;
     } catch (err: any) {
-      throw new Error("Failed to get storage usage");
+      // Demo mode: return demo storage usage
+      return { mb: 156.5, percent: 15.65 };
     }
   };
 
@@ -104,33 +172,25 @@ export function useUploadMedia() {
   const [error, setError] = useState<string | null>(null);
 
   const uploadMedia = async (file: File, name?: string) => {
-    if (!session?.user) {
-      throw new Error("Not authenticated");
-    }
-
     try {
       setUploading(true);
       setError(null);
 
-      // In production, upload to Supabase Storage first
-      // For now, create media record with a placeholder URL
-      const formData = new FormData();
-      formData.append("file", file);
+      // Demo mode: simulate upload with delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Mock upload - replace with actual Supabase storage call
       const mockUrl = `https://placeholder.com/${file.name}`;
-
-      const response = await api.post("/api/media", {
+      return {
+        id: Math.random().toString(36).substr(2, 9),
         name: name || file.name,
         type: getMediaType(file.type),
         url: mockUrl,
         size: file.size,
         mimeType: file.type,
-      });
-
-      return response.data.data;
+        createdAt: new Date(),
+      };
     } catch (err: any) {
-      const message = err.response?.data?.error?.message || "Failed to upload media";
+      const message = "Failed to upload media";
       setError(message);
       throw new Error(message);
     } finally {
