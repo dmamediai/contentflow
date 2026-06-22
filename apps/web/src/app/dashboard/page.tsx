@@ -8,6 +8,7 @@ import { BarChart3, FileText, Calendar, Users, TrendingUp, Clock } from "lucide-
 import Link from "next/link";
 
 export default function DashboardPage() {
+  // Force redeploy
   const { data: session } = useSession();
   const { teams, loading } = useTeams();
 
