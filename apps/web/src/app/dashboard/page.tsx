@@ -75,24 +75,24 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       {currentTeam && (
         <div className="flex gap-4 flex-wrap">
-          <Link href="/dashboard/studio" className="no-underline">
-            <Button className="cursor-pointer">
+          <Button asChild>
+            <Link href="/dashboard/studio">
               <BarChart3 className="mr-2 h-4 w-4" />
               Create Post
-            </Button>
-          </Link>
-          <Link href="/dashboard/calendar" className="no-underline">
-            <Button variant="outline" className="cursor-pointer">
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/dashboard/calendar">
               <Calendar className="mr-2 h-4 w-4" />
               View Calendar
-            </Button>
-          </Link>
-          <Link href="/dashboard/settings" className="no-underline">
-            <Button variant="outline" className="cursor-pointer">
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/dashboard/settings">
               <Users className="mr-2 h-4 w-4" />
               Team Settings
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -134,9 +134,9 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mb-4">
             Create a team to start managing your social media content.
           </p>
-          <Link href="/dashboard/teams" className="no-underline">
-            <Button className="cursor-pointer">Create Team</Button>
-          </Link>
+          <Button asChild>
+            <Link href="/dashboard/teams">Create Team</Link>
+          </Button>
         </Card>
       )}
     </div>
