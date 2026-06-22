@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit2, Trash2, Eye, Share2, Clock } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, Share2, Clock, X } from "lucide-react";
 import { toast } from "sonner";
 
 const DEMO_POSTS = [
@@ -36,6 +36,8 @@ const DEMO_POSTS = [
 export default function PostsPage() {
   const [posts, setPosts] = useState(DEMO_POSTS);
   const [filter, setFilter] = useState("all");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newPost, setNewPost] = useState({ title: "", content: "", status: "draft" });
 
   const filteredPosts = filter === "all" ? posts : posts.filter((p) => p.status === filter);
 
@@ -61,12 +63,98 @@ export default function PostsPage() {
         </div>
         <Button
           className="flex items-center gap-2"
-          onClick={() => toast.info("Create new post - backend required")}
+          onClick={() => setShowCreateModal(true)}
         >
           <Plus className="w-4 h-4" />
           New Post
         </Button>
       </div>
+
+      {/* Create Post Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Create New Post</CardTitle>
+                <CardDescription>Write and schedule your post</CardDescription>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 hover:bg-muted rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Post Title</label>
+                <input
+                  type="text"
+                  placeholder="Enter post title..."
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({ ...newPost, title: e.target.value })}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Content</label>
+                <textarea
+                  placeholder="Write your post content..."
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({ ...newPost, content: e.target.value })}
+                  rows={4}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  value={newPost.status}
+                  onChange={(e) => setNewPost({ ...newPost, status: e.target.value })}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="published">Published</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (!newPost.title || !newPost.content) {
+                      toast.error("Please fill in all fields");
+                      return;
+                    }
+                    const post = {
+                      id: Math.random().toString(36).substr(2, 9),
+                      title: newPost.title,
+                      content: newPost.content,
+                      status: newPost.status,
+                      createdAt: new Date().toISOString().split('T')[0],
+                      views: 0,
+                    };
+                    setPosts([post, ...posts]);
+                    toast.success(`Post created as ${newPost.status}!`);
+                    setShowCreateModal(false);
+                    setNewPost({ title: "", content: "", status: "draft" });
+                  }}
+                >
+                  Create Post
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowCreateModal(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex gap-2">

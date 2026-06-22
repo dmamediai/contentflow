@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -21,6 +21,8 @@ const DEMO_EVENTS: { [key: string]: number } = {
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date(2024, 5, 1)); // June 2024
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [scheduleData, setScheduleData] = useState({ title: "", content: "", date: "", time: "10:00" });
 
   const month = currentDate.getMonth();
   const year = currentDate.getFullYear();
@@ -58,12 +60,97 @@ export default function CalendarPage() {
         </div>
         <Button
           className="flex items-center gap-2"
-          onClick={() => toast.info("Schedule post - backend required")}
+          onClick={() => setShowScheduleModal(true)}
         >
           <Plus className="w-4 h-4" />
           Schedule Post
         </Button>
       </div>
+
+      {/* Schedule Post Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-lg">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Schedule Post</CardTitle>
+                <CardDescription>Schedule your post for later</CardDescription>
+              </div>
+              <button
+                onClick={() => setShowScheduleModal(false)}
+                className="p-1 hover:bg-muted rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Post Title</label>
+                <input
+                  type="text"
+                  placeholder="Enter post title..."
+                  value={scheduleData.title}
+                  onChange={(e) => setScheduleData({ ...scheduleData, title: e.target.value })}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Content</label>
+                <textarea
+                  placeholder="Write your post content..."
+                  value={scheduleData.content}
+                  onChange={(e) => setScheduleData({ ...scheduleData, content: e.target.value })}
+                  rows={4}
+                  className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Date</label>
+                  <input
+                    type="date"
+                    value={scheduleData.date}
+                    onChange={(e) => setScheduleData({ ...scheduleData, date: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Time</label>
+                  <input
+                    type="time"
+                    value={scheduleData.time}
+                    onChange={(e) => setScheduleData({ ...scheduleData, time: e.target.value })}
+                    className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (!scheduleData.title || !scheduleData.content || !scheduleData.date) {
+                      toast.error("Please fill in all fields");
+                      return;
+                    }
+                    toast.success(`Post scheduled for ${scheduleData.date} at ${scheduleData.time}!`);
+                    setShowScheduleModal(false);
+                    setScheduleData({ title: "", content: "", date: "", time: "10:00" });
+                  }}
+                >
+                  Schedule
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowScheduleModal(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Calendar Card */}
       <Card>
