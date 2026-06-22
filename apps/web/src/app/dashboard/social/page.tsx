@@ -13,6 +13,7 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api-client";
@@ -38,8 +39,28 @@ export default function SocialPage() {
   const loadAccounts = async () => {
     try {
       setLoading(true);
-      const response = await api.get("/api/oauth/accounts");
-      setAccounts(response.data.data);
+
+      // Demo mode: show demo connected accounts
+      const demoAccounts: SocialAccount[] = [
+        {
+          id: "twitter-1",
+          platform: "TWITTER",
+          displayName: "Your Twitter Name",
+          username: "yourhandle",
+          profileImage: "https://via.placeholder.com/40",
+          connectedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          id: "linkedin-1",
+          platform: "LINKEDIN",
+          displayName: "Your LinkedIn Profile",
+          username: "your-linkedin",
+          profileImage: "https://via.placeholder.com/40",
+          connectedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        },
+      ];
+
+      setAccounts(demoAccounts);
     } catch (error: any) {
       toast.error("Failed to load accounts");
     } finally {
@@ -50,12 +71,24 @@ export default function SocialPage() {
   const handleConnect = async (platform: string) => {
     try {
       setConnecting(platform);
-      const response = await api.get(`/api/oauth/authorize/${platform}`);
 
-      // Redirect to OAuth provider
-      window.location.href = response.data.data.authUrl;
+      // Demo mode: simulate connection
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const newAccount: SocialAccount = {
+        id: `${platform.toLowerCase()}-${Date.now()}`,
+        platform: platform,
+        displayName: `Connected ${platform} Account`,
+        username: `user_${platform.toLowerCase()}`,
+        profileImage: "https://via.placeholder.com/40",
+        connectedAt: new Date().toISOString(),
+      };
+
+      setAccounts([...accounts, newAccount]);
+      toast.success(`${platform} connected successfully!`);
     } catch (error: any) {
       toast.error(`Failed to connect ${platform}`);
+    } finally {
       setConnecting(null);
     }
   };
@@ -64,7 +97,7 @@ export default function SocialPage() {
     if (!confirm(`Disconnect ${platform}?`)) return;
 
     try {
-      await api.delete(`/api/oauth/accounts/${accountId}`);
+      // Demo mode: just remove from state
       setAccounts(accounts.filter((a) => a.id !== accountId));
       toast.success(`${platform} disconnected`);
     } catch (error: any) {
@@ -77,6 +110,7 @@ export default function SocialPage() {
     LINKEDIN: Linkedin,
     FACEBOOK: Facebook,
     INSTAGRAM: Instagram,
+    THREADS: MessageCircle,
   };
 
   const platformColors: Record<string, string> = {
@@ -84,6 +118,7 @@ export default function SocialPage() {
     LINKEDIN: "text-blue-600 bg-blue-50 dark:bg-blue-900/20",
     FACEBOOK: "text-blue-700 bg-blue-50 dark:bg-blue-900/20",
     INSTAGRAM: "text-pink-600 bg-pink-50 dark:bg-pink-900/20",
+    THREADS: "text-gray-700 bg-gray-50 dark:bg-gray-900/20",
   };
 
   const platforms = [
@@ -91,6 +126,7 @@ export default function SocialPage() {
     { id: "LINKEDIN", name: "LinkedIn", icon: Linkedin },
     { id: "FACEBOOK", name: "Facebook", icon: Facebook },
     { id: "INSTAGRAM", name: "Instagram", icon: Instagram },
+    { id: "THREADS", name: "Threads", icon: MessageCircle },
   ];
 
   const connectedPlatforms = accounts.map((a) => a.platform);
