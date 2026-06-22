@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useTeams } from "@/hooks/useTeams";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { BarChart3, FileText, Calendar, Users, TrendingUp, Clock } from "lucide-
 import Link from "next/link";
 
 export default function DashboardPage() {
-  // Force redeploy
+  const router = useRouter();
   const { data: session } = useSession();
   const { teams, loading } = useTeams();
 
@@ -76,18 +77,18 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       {currentTeam && (
         <div className="flex gap-4 flex-wrap">
-          <Link href="/dashboard/studio" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+          <Button onClick={() => router.push("/dashboard/studio")}>
             <BarChart3 className="mr-2 h-4 w-4" />
             Create Post
-          </Link>
-          <Link href="/dashboard/calendar" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/dashboard/calendar")}>
             <Calendar className="mr-2 h-4 w-4" />
             View Calendar
-          </Link>
-          <Link href="/dashboard/settings" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+          </Button>
+          <Button variant="outline" onClick={() => router.push("/dashboard/settings")}>
             <Users className="mr-2 h-4 w-4" />
             Team Settings
-          </Link>
+          </Button>
         </div>
       )}
 
@@ -129,9 +130,7 @@ export default function DashboardPage() {
           <p className="text-muted-foreground mb-4">
             Create a team to start managing your social media content.
           </p>
-          <Link href="/dashboard/teams" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-            Create Team
-          </Link>
+          <Button onClick={() => router.push("/dashboard/teams")}>Create Team</Button>
         </Card>
       )}
     </div>
