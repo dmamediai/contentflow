@@ -111,6 +111,7 @@ model Team {
   profiles        Profile[]
   webhooks        Webhook[]
   conversations   Conversation[]
+  generations     Generation[]
 
   creator User @relation(fields: [createdBy], references: [id])
 
@@ -776,4 +777,42 @@ model Message {
 enum MessageDirection {
   INBOUND
   OUTBOUND
+}
+
+// ============================================================================
+// AI STUDIO - media generation jobs (image via OpenRouter, video via fal.ai)
+// ============================================================================
+
+model Generation {
+  id            String           @id @default(cuid())
+  teamId        String
+  type          GenerationType
+  status        GenerationStatus @default(PENDING)
+  provider      String
+  model         String
+  prompt        String           @db.Text
+  params        Json?
+  providerJobId String?
+  outputUrl     String?          @db.Text
+  mediaId       String?
+  error         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([status])
+}
+
+enum GenerationType {
+  IMAGE
+  VIDEO
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

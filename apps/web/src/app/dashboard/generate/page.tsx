@@ -42,12 +42,13 @@ const SAMPLE_PROMPTS = [
   { text: "A product hero shot of a glowing sneaker", emoji: "👟" },
 ];
 
-interface GenResult {
+interface GenJob {
+  id: string;
   type: GenType;
-  url?: string;
-  aspectRatio: string;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  outputUrl?: string;
   model: string;
-  mediaId?: string;
+  error?: string;
 }
 
 export default function GeneratePage() {
@@ -58,7 +59,7 @@ export default function GeneratePage() {
   const [duration, setDuration] = useState<number>(8);
   const [upload, setUpload] = useState<{ name: string; url: string } | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<GenResult | null>(null);
+  const [result, setResult] = useState<GenJob | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [credits, setCredits] = useState<{ plan: string; remaining: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -92,6 +93,36 @@ export default function GeneratePage() {
     setUpload({ name: file.name, url: URL.createObjectURL(file) });
   };
 
+  const pollJob = (id: string) => {
+    const started = Date.now();
+    const tick = async () => {
+      if (Date.now() - started > 5 * 60 * 1000) {
+        toast.error("Generation timed out — try again");
+        setGenerating(false);
+        return;
+      }
+      try {
+        const { data } = await api.get(`/api/generate/${id}`);
+        const job: GenJob = data.data;
+        if (job.status === "COMPLETED") {
+          setResult(job);
+          setGenerating(false);
+          toast.success("Saved to your Media library");
+          return;
+        }
+        if (job.status === "FAILED") {
+          toast.error(job.error || "Generation failed");
+          setGenerating(false);
+          return;
+        }
+        setTimeout(tick, 3000);
+      } catch {
+        setTimeout(tick, 4000);
+      }
+    };
+    setTimeout(tick, 3000);
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim() || generating) return;
     setGenerating(true);
@@ -105,17 +136,23 @@ export default function GeneratePage() {
         ...(type === "video" && { duration }),
         mode,
       });
-      setResult(data.data);
-      if (data.data.mediaId) toast.success("Saved to your Media library");
+      const job: GenJob = data.data;
+      if (job.status === "COMPLETED") {
+        setResult(job);
+        setGenerating(false);
+        toast.success("Saved to your Media library");
+      } else if (job.status === "FAILED") {
+        toast.error(job.error || "Generation failed");
+        setGenerating(false);
+      } else {
+        // Async (video): keep the loader up and poll to completion.
+        pollJob(job.id);
+      }
     } catch (error: any) {
       const status = error?.response?.status;
       const message = error?.response?.data?.error?.message || "Generation failed";
-      if (status === 503) {
-        setNotice(message);
-      } else {
-        toast.error(message);
-      }
-    } finally {
+      if (status === 503) setNotice(message);
+      else toast.error(message);
       setGenerating(false);
     }
   };
@@ -267,6 +304,9 @@ export default function GeneratePage() {
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-900 py-16 text-center">
                   <Loader2 className="w-7 h-7 animate-spin mx-auto text-lime-400" />
                   <p className="text-sm text-neutral-400 mt-3">Generating your {type}…</p>
+                  {type === "video" && (
+                    <p className="text-xs text-neutral-600 mt-1">This can take a minute or two.</p>
+                  )}
                 </div>
               )}
 
@@ -277,16 +317,26 @@ export default function GeneratePage() {
                 </div>
               )}
 
-              {result?.url && !generating && (
+              {result?.outputUrl && !generating && (
                 <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={result.url} alt={prompt} className="rounded-xl w-full max-h-[520px] object-contain bg-black" />
+                  {result.type === "video" ? (
+                    <video
+                      src={result.outputUrl}
+                      controls
+                      autoPlay
+                      loop
+                      className="rounded-xl w-full max-h-[520px] bg-black"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={result.outputUrl} alt={prompt} className="rounded-xl w-full max-h-[520px] object-contain bg-black" />
+                  )}
                   <div className="flex items-center justify-between mt-3">
                     <span className="text-xs text-neutral-500">
-                      {result.model} · {result.aspectRatio}
+                      {result.model} · {ratio}
                     </span>
                     <a
-                      href={result.url}
+                      href={result.outputUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 rounded-full bg-lime-400 text-neutral-950 px-4 py-1.5 text-sm font-medium hover:bg-lime-300 transition-colors"

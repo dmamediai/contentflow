@@ -19,7 +19,19 @@ const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextF
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 
-// POST /api/generate - Generate an image or video from a prompt
+function serialize(gen: any) {
+  return {
+    id: gen.id,
+    type: gen.type,
+    status: gen.status,
+    model: gen.model,
+    outputUrl: gen.outputUrl,
+    error: gen.error,
+    createdAt: gen.createdAt,
+  };
+}
+
+// POST /api/generate - Start an image (sync) or video (async) generation
 router.post(
   "/",
   authenticateJWT,
@@ -27,18 +39,26 @@ router.post(
   authorize("media:write"),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const body = generateSchema.parse(req.body);
+    const gen = await MediaGenerationService.create(req.user!.teamId!, {
+      type: body.type,
+      prompt: body.prompt,
+      aspectRatio: body.aspectRatio || "1:1",
+      duration: body.duration,
+      mode: body.mode,
+    });
+    res.json({ success: true, data: serialize(gen) });
+  })
+);
 
-    const result =
-      body.type === "image"
-        ? await MediaGenerationService.generateImage(
-            req.user!.teamId!,
-            body.prompt,
-            body.aspectRatio || "1:1",
-            body.mode || "Vivid"
-          )
-        : await MediaGenerationService.generateVideo();
-
-    res.json({ success: true, data: result });
+// GET /api/generate/:id - Poll a generation's status (finalizes async video)
+router.get(
+  "/:id",
+  authenticateJWT,
+  teamContext,
+  authorize("media:read"),
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const gen = await MediaGenerationService.get(req.user!.teamId!, req.params.id);
+    res.json({ success: true, data: serialize(gen) });
   })
 );
 
