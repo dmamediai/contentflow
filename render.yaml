@@ -1,0 +1,33 @@
+# Render Blueprint for the ContentFlow API (Express).
+# Deploy: Render Dashboard -> New -> Blueprint -> connect this repo -> apply.
+# The 6 secrets below are marked sync:false, so Render prompts you for them on
+# first deploy (paste the values from your local apps/api/.env). NODE_ENV and
+# NEXT_PUBLIC_APP_URL are set here directly.
+services:
+  - type: web
+    name: contentflow-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    buildCommand: npm install --include=dev && npx prisma generate --schema=packages/db/prisma/schema.prisma && npm run build -w @social-media-saas/api
+    startCommand: node apps/api/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://web-five-navy-43.vercel.app
+      - key: DATABASE_URL
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
