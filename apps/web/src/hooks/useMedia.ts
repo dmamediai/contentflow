@@ -113,7 +113,7 @@ export function useMedia(options: UseMediaOptions = {}) {
               mimeType: "audio/wav",
             },
           ];
-          setMedia(demoMedia);
+          setMedia(demoMedia as Media[]);
           setPagination({
             page: 1,
             limit: 20,
