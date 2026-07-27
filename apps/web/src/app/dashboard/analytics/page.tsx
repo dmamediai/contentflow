@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
                         <XAxis dataKey="platform" fontSize={12} />
                         <YAxis fontSize={12} />
                         <Tooltip />
-                        <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="count" fill="#84cc16" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -185,7 +185,7 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="date" fontSize={11} tickFormatter={(v) => v.slice(5)} />
                       <YAxis fontSize={12} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="followers" stroke="#2563eb" strokeWidth={2} dot={false} />
+                      <Line type="monotone" dataKey="followers" stroke="#84cc16" strokeWidth={2} dot={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </Card>

@@ -21,7 +21,7 @@ export default function DashboardPage() {
       label: "Total Posts",
       value: "0",
       icon: FileText,
-      color: "text-blue-600",
+      color: "text-lime-600",
     },
     {
       label: "Scheduled",
@@ -134,7 +134,7 @@ export default function DashboardPage() {
 
       {/* Getting Started */}
       {!currentTeam && (
-        <Card className="p-6 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border-blue-200 dark:border-blue-800">
+        <Card className="p-6 bg-gradient-to-r from-lime-50 to-green-50 dark:from-green-950 dark:to-green-900 border-lime-300 dark:border-green-800">
           <h3 className="text-lg font-semibold mb-2">Get Started</h3>
           <p className="text-muted-foreground mb-4">
             Create a team to start managing your social media content.

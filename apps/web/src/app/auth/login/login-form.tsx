@@ -83,7 +83,7 @@ export function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={loading}
               />
             </div>
@@ -98,7 +98,7 @@ export function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={loading}
               />
             </div>
@@ -112,7 +112,7 @@ export function LoginForm() {
 
         <p className="text-center text-sm text-gray-600 mt-4">
           Don't have an account?{" "}
-          <Link href="/auth/register" className="text-blue-600 hover:text-blue-700">
+          <Link href="/auth/register" className="text-lime-700 hover:text-lime-600">
             Sign up here
           </Link>
         </p>

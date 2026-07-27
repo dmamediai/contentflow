@@ -134,7 +134,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2">
           <div className="flex justify-center mb-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <div className="text-3xl font-bold bg-gradient-to-r from-lime-600 to-green-700 bg-clip-text text-transparent">
               ContentFlow
             </div>
           </div>

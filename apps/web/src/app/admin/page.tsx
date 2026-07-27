@@ -79,7 +79,7 @@ export default function AdminPage() {
                   <p className="text-sm text-muted-foreground">Total Users</p>
                   <p className="text-3xl font-bold">{stats.totalUsers}</p>
                 </div>
-                <Users className="w-8 h-8 text-blue-500 opacity-20" />
+                <Users className="w-8 h-8 text-lime-600 opacity-20" />
               </div>
             </CardContent>
           </Card>
