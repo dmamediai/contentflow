@@ -7,6 +7,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Plug2,
   PenSquare,
+  Clapperboard,
   LayoutGrid,
   Layers,
   BarChart3,
@@ -59,6 +60,7 @@ const navigation: NavItem[] = [
       { name: "Queues", href: "/dashboard/posts/queues", icon: Layers },
     ],
   },
+  { name: "Studio", href: "/dashboard/generate", icon: Clapperboard },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   {
     name: "Inbox",
