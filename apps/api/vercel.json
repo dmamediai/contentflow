@@ -1,8 +1,5 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install --legacy-peer-deps",
-  "crons": [
-    { "path": "/api/cron/scheduler", "schedule": "* * * * *" }
-  ]
+  "installCommand": "npm install --legacy-peer-deps"
 }
