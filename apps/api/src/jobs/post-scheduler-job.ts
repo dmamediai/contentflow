@@ -6,32 +6,43 @@ const POLL_INTERVAL_MS = 60 * 1000;
 const BATCH_SIZE = 20;
 
 /**
- * Single-process poller that executes scheduled v1 posts once their
- * scheduledAt has passed. Fine for a single API instance; a real deployment
- * with multiple instances should replace this with a proper job queue
- * (e.g. BullMQ + Redis) so posts aren't claimed more than once per replica -
- * documented in docs/PUBLIC_API.md.
+ * Execute one batch of scheduled posts whose scheduledAt has passed.
+ * Returns how many posts were processed. Per-post errors are isolated so a
+ * single failure doesn't stop the batch. Shared by both the in-process poller
+ * (long-running hosts) and the /api/cron/scheduler endpoint (Vercel Cron on
+ * serverless, where setInterval never fires).
+ */
+export async function runDueScheduledPosts(): Promise<{ processed: number }> {
+  const due = await prisma.post.findMany({
+    where: { status: "SCHEDULED", scheduledAt: { lte: new Date() } },
+    take: BATCH_SIZE,
+    select: { id: true },
+  });
+
+  for (const { id } of due) {
+    try {
+      await V1PostsService.executePost(id);
+    } catch (error) {
+      logger.error({
+        action: "post_scheduler_job.execute_failed",
+        postId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  return { processed: due.length };
+}
+
+/**
+ * In-process poller for long-running hosts (Render, Railway, a VM). On Vercel
+ * serverless this interval never fires — the Vercel Cron hitting
+ * /api/cron/scheduler drives scheduling there instead.
  */
 export function startPostSchedulerJob(): void {
   setInterval(async () => {
     try {
-      const due = await prisma.post.findMany({
-        where: { status: "SCHEDULED", scheduledAt: { lte: new Date() } },
-        take: BATCH_SIZE,
-        select: { id: true },
-      });
-
-      for (const { id } of due) {
-        try {
-          await V1PostsService.executePost(id);
-        } catch (error) {
-          logger.error({
-            action: "post_scheduler_job.execute_failed",
-            postId: id,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        }
-      }
+      await runDueScheduledPosts();
     } catch (error) {
       logger.error({
         action: "post_scheduler_job.poll_failed",
