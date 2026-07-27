@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc; exit 0",
+    "build": "prisma generate && tsc; exit 0",
     "start": "node dist/index.js",
+    "postinstall": "prisma generate",
     "lint": "eslint src",
     "type-check": "tsc --noEmit"
   },
@@ -33,6 +34,7 @@
     "@types/node": "^20.10.0",
     "@types/cors": "^2.8.17",
     "typescript": "^5.3.3",
+    "prisma": "^5.7.1",
     "tsx": "^4.7.0",
     "eslint": "^8.54.0",
     "@typescript-eslint/parser": "^6.13.2",

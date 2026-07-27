@@ -10,9 +10,9 @@
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "db:push": "cd packages/db && prisma db push",
-    "db:migrate": "cd packages/db && prisma migrate dev",
-    "db:generate": "cd packages/db && prisma generate"
+    "db:push": "cd apps/api && prisma db push",
+    "db:migrate": "cd apps/api && prisma migrate dev",
+    "db:generate": "cd apps/api && prisma generate"
   },
   "workspaces": [
     "apps/*",
