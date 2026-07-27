@@ -194,8 +194,16 @@ export function Sidebar() {
           })}
         </nav>
 
+        {/* Free credits card */}
+        <div className="px-3 pt-3">
+          <div className="rounded-xl border bg-muted/40 px-4 py-3">
+            <p className="text-xs text-muted-foreground">Free credits</p>
+            <p className="text-lg font-bold text-green-600 dark:text-lime-400">$12.00</p>
+          </div>
+        </div>
+
         {/* Footer */}
-        <div className="p-3 border-t flex items-center gap-2">
+        <div className="p-3 flex items-center gap-2">
           <a
             href="/docs/PUBLIC_API.md"
             target="_blank"

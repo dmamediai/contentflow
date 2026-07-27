@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
+import { z } from "zod";
 import { authenticateJWT, AuthRequest } from "../middleware/auth";
 import { teamContext, authorize } from "../middleware/rbac";
 import { InboxService } from "../services/inbox.service";
@@ -47,6 +48,29 @@ router.post(
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const conversation = await InboxService.markRead(req.user!.teamId!, req.params.conversationId);
     res.json({ success: true, data: conversation });
+  })
+);
+
+const sendMessageSchema = z.object({
+  content: z.string().min(1).max(4096),
+  mediaUrl: z.string().url().optional(),
+});
+
+// POST /api/inbox/conversations/:conversationId/messages - Send an outbound reply
+router.post(
+  "/conversations/:conversationId/messages",
+  authenticateJWT,
+  teamContext,
+  authorize("social:write"),
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const body = sendMessageSchema.parse(req.body);
+    const message = await InboxService.sendMessage(
+      req.user!.teamId!,
+      req.params.conversationId,
+      body.content,
+      body.mediaUrl
+    );
+    res.status(201).json({ success: true, data: message });
   })
 );
 

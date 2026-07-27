@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, ChevronDown, PenSquare, MessageSquare, Loader2 } from "lucide-react";
+import {
+  Search,
+  ChevronDown,
+  PenSquare,
+  MessageSquare,
+  Loader2,
+  MoreVertical,
+  ExternalLink,
+  Paperclip,
+  Sparkles,
+  Mic,
+  Send,
+  CheckCheck,
+  MessageCircle,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+interface Message {
+  id: string;
+  direction: "INBOUND" | "OUTBOUND";
+  content: string | null;
+  mediaUrl: string | null;
+  sentAt: string;
+}
 
 interface Conversation {
   id: string;
@@ -30,22 +52,46 @@ interface Profile {
   id: string;
   name: string;
 }
-
 interface Account {
   id: string;
   platform: string;
   displayName: string;
 }
 
+const PLATFORM_BADGE: Record<string, string> = {
+  WHATSAPP: "bg-[#25D366]",
+  INSTAGRAM: "bg-[#E4405F]",
+  FACEBOOK: "bg-[#1877F2]",
+  TWITTER: "bg-[#1DA1F2]",
+  LINKEDIN: "bg-[#0A66C2]",
+  THREADS: "bg-foreground",
+  BLUESKY: "bg-[#0085FF]",
+  TIKTOK: "bg-foreground",
+  YOUTUBE: "bg-[#FF0000]",
+};
+
 function timeAgo(dateStr: string | null): string {
   if (!dateStr) return "";
-  const diffMs = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diffMs / 60000);
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
   if (mins < 1) return "now";
   if (mins < 60) return `${mins}m`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h`;
   return `${Math.floor(hours / 24)}d`;
+}
+
+function clockTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+}
+
+function dayLabel(dateStr: string): string {
+  const d = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export default function MessagesPage() {
@@ -54,12 +100,18 @@ export default function MessagesPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
 
   const [platformFilter, setPlatformFilter] = useState<string | "all">("all");
   const [profileFilter, setProfileFilter] = useState<string | "all">("all");
   const [accountFilter, setAccountFilter] = useState<string | "all">("all");
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const threadEndRef = useRef<HTMLDivElement>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -89,6 +141,42 @@ export default function MessagesPage() {
     loadData();
   }, [loadData]);
 
+  const openConversation = useCallback(async (id: string) => {
+    setSelectedId(id);
+    setThreadLoading(true);
+    setMessages([]);
+    try {
+      const { data } = await api.get(`/api/inbox/conversations/${id}`);
+      setMessages(data.data.messages || []);
+      api.post(`/api/inbox/conversations/${id}/read`).catch(() => undefined);
+      setConversations((prev) => prev.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c)));
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || "Failed to open conversation");
+    } finally {
+      setThreadLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!draft.trim() || !selectedId || sending) return;
+    setSending(true);
+    const content = draft;
+    setDraft("");
+    try {
+      const { data } = await api.post(`/api/inbox/conversations/${selectedId}/messages`, { content });
+      setMessages((prev) => [...prev, data.data]);
+    } catch (error: any) {
+      setDraft(content);
+      toast.error(error?.response?.data?.error?.message || "Failed to send message");
+    } finally {
+      setSending(false);
+    }
+  };
+
   const filtered = conversations
     .filter((c) => {
       if (!search) return true;
@@ -115,56 +203,21 @@ export default function MessagesPage() {
         </div>
 
         <div className="px-4 flex items-center gap-2 flex-wrap pb-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                {platformFilter === "all" ? "All platforms" : platformFilter}
-                <ChevronDown size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setPlatformFilter("all")}>All platforms</DropdownMenuItem>
-              {Array.from(new Set(accounts.map((a) => a.platform))).map((p) => (
-                <DropdownMenuItem key={p} onClick={() => setPlatformFilter(p)}>
-                  {p}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                {profileFilter === "all" ? "All profiles" : profiles.find((p) => p.id === profileFilter)?.name}
-                <ChevronDown size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setProfileFilter("all")}>All profiles</DropdownMenuItem>
-              {profiles.map((p) => (
-                <DropdownMenuItem key={p.id} onClick={() => setProfileFilter(p.id)}>
-                  {p.name}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                {accountFilter === "all" ? "All accounts" : accounts.find((a) => a.id === accountFilter)?.displayName}
-                <ChevronDown size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => setAccountFilter("all")}>All accounts</DropdownMenuItem>
-              {accounts.map((a) => (
-                <DropdownMenuItem key={a.id} onClick={() => setAccountFilter(a.id)}>
-                  {a.displayName}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FilterMenu
+            label={platformFilter === "all" ? "All platforms" : platformFilter}
+            options={[{ v: "all", l: "All platforms" }, ...Array.from(new Set(accounts.map((a) => a.platform))).map((p) => ({ v: p, l: p }))]}
+            onSelect={setPlatformFilter}
+          />
+          <FilterMenu
+            label={profileFilter === "all" ? "All profiles" : profiles.find((p) => p.id === profileFilter)?.name || ""}
+            options={[{ v: "all", l: "All profiles" }, ...profiles.map((p) => ({ v: p.id, l: p.name }))]}
+            onSelect={setProfileFilter}
+          />
+          <FilterMenu
+            label={accountFilter === "all" ? "All accounts" : accounts.find((a) => a.id === accountFilter)?.displayName || ""}
+            options={[{ v: "all", l: "All accounts" }, ...accounts.map((a) => ({ v: a.id, l: a.displayName }))]}
+            onSelect={setAccountFilter}
+          />
         </div>
 
         <div className="px-4 pb-3">
@@ -181,18 +234,12 @@ export default function MessagesPage() {
 
         <div className="px-4 py-2 flex items-center justify-between border-t">
           <span className="text-sm font-medium">Conversations</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
-                {sort === "newest" ? "Newest first" : "Oldest first"}
-                <ChevronDown size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setSort("newest")}>Newest first</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSort("oldest")}>Oldest first</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FilterMenu
+            label={sort === "newest" ? "Newest first" : "Oldest first"}
+            options={[{ v: "newest", l: "Newest first" }, { v: "oldest", l: "Oldest first" }]}
+            onSelect={(v) => setSort(v as "newest" | "oldest")}
+            align="end"
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -205,64 +252,208 @@ export default function MessagesPage() {
               <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
               <p className="text-sm text-muted-foreground">No conversations yet.</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Conversations will appear here once your connected accounts receive messages.
+                Conversations appear here once your connected accounts receive messages.
               </p>
             </div>
           ) : (
-            filtered.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => setSelectedId(conversation.id)}
-                className={cn(
-                  "w-full flex items-start gap-3 px-4 py-3 text-left border-b hover:bg-muted transition-colors",
-                  selectedId === conversation.id && "bg-muted"
-                )}
-              >
-                <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-muted-foreground/20 flex items-center justify-center text-sm font-semibold">
-                    {(conversation.externalContactName || conversation.externalContactId)[0]?.toUpperCase()}
-                  </div>
-                  {conversation.unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                      {conversation.unreadCount}
-                    </span>
+            filtered.map((conversation) => {
+              const title = conversation.externalContactName || conversation.externalContactId;
+              return (
+                <button
+                  key={conversation.id}
+                  onClick={() => openConversation(conversation.id)}
+                  className={cn(
+                    "w-full flex items-start gap-3 px-4 py-3 text-left border-b hover:bg-muted/60 transition-colors",
+                    selectedId === conversation.id && "bg-muted"
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-sm truncate">
-                      {conversation.externalContactName || conversation.externalContactId}
-                    </p>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {timeAgo(conversation.lastMessageAt)}
-                    </span>
+                >
+                  <Avatar title={title} platform={conversation.platform} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-semibold text-sm truncate">
+                        {title}
+                        <span className="font-normal text-muted-foreground"> · via {conversation.socialAccount.displayName}</span>
+                      </p>
+                      <span className="text-xs text-muted-foreground shrink-0">{timeAgo(conversation.lastMessageAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-0.5">
+                      <p className="text-sm text-muted-foreground truncate">
+                        {conversation.lastMessagePreview || "No messages yet"}
+                      </p>
+                      {conversation.unreadCount > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    via {conversation.socialAccount.displayName}
-                  </p>
-                  {conversation.lastMessagePreview && (
-                    <p className="text-sm text-muted-foreground truncate mt-0.5">
-                      {conversation.lastMessagePreview}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </div>
 
       {/* Detail pane */}
-      <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b">
-          <h2 className="font-semibold">
-            {selected ? selected.externalContactName || selected.externalContactId : "Select a conversation"}
-          </h2>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground text-sm">
-            {selected ? "No messages yet in this conversation." : "Select a conversation to view messages"}
-          </p>
+      <div className="flex-1 flex flex-col min-w-0">
+        {!selected ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <p className="font-semibold">Select a conversation</p>
+            <p className="text-sm text-muted-foreground mt-1">Select a conversation to view messages</p>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 px-5 py-3 border-b">
+              <div className="flex items-center gap-3 min-w-0">
+                <Avatar title={selected.externalContactName || selected.externalContactId} platform={selected.platform} />
+                <div className="min-w-0">
+                  <p className="font-semibold truncate">{selected.externalContactName || selected.externalContactId}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    Replying as {selected.socialAccount.displayName} · Active {timeAgo(selected.lastMessageAt) || "now"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 shrink-0 text-muted-foreground">
+                <Button variant="ghost" size="icon" className="h-8 w-8"><ExternalLink size={16} /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical size={16} /></Button>
+              </div>
+            </div>
+
+            {/* Thread */}
+            <div className="flex-1 overflow-y-auto px-5 py-6 space-y-1">
+              {threadLoading ? (
+                <div className="py-12 text-center">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto text-muted-foreground" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">No messages in this conversation yet.</p>
+                </div>
+              ) : (
+                messages.map((message, i) => {
+                  const prev = messages[i - 1];
+                  const showDay = !prev || dayLabel(prev.sentAt) !== dayLabel(message.sentAt);
+                  return (
+                    <div key={message.id}>
+                      {showDay && (
+                        <div className="flex justify-center my-4">
+                          <span className="text-xs text-muted-foreground bg-muted rounded-full px-3 py-1">
+                            {dayLabel(message.sentAt)}
+                          </span>
+                        </div>
+                      )}
+                      <MessageBubble message={message} />
+                    </div>
+                  );
+                })
+              )}
+              <div ref={threadEndRef} />
+            </div>
+
+            {/* Composer */}
+            <div className="px-5 py-4 border-t">
+              <div className="flex items-end gap-2 border rounded-2xl px-4 py-2">
+                <textarea
+                  rows={1}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSend();
+                    }
+                  }}
+                  placeholder="Type a message..."
+                  className="flex-1 resize-none bg-transparent outline-none text-sm py-1.5 max-h-32"
+                />
+                <div className="flex items-center gap-1 pb-0.5 text-muted-foreground">
+                  <button className="p-1.5 hover:text-foreground transition-colors"><Paperclip size={18} /></button>
+                  <button className="p-1.5 hover:text-foreground transition-colors"><Sparkles size={18} /></button>
+                  <button className="p-1.5 hover:text-foreground transition-colors"><Mic size={18} /></button>
+                  <button
+                    onClick={handleSend}
+                    disabled={!draft.trim() || sending}
+                    className="ml-1 w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function FilterMenu({
+  label,
+  options,
+  onSelect,
+  align = "start",
+}: {
+  label: string;
+  options: { v: string; l: string }[];
+  onSelect: (v: string) => void;
+  align?: "start" | "end";
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1.5">
+          {label}
+          <ChevronDown size={14} />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align={align}>
+        {options.map((o) => (
+          <DropdownMenuItem key={o.v} onClick={() => onSelect(o.v)}>
+            {o.l}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function Avatar({ title, platform }: { title: string; platform: string }) {
+  return (
+    <div className="relative shrink-0">
+      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
+        {title[0]?.toUpperCase()}
+      </div>
+      <span
+        className={cn(
+          "absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center",
+          PLATFORM_BADGE[platform] || "bg-muted-foreground"
+        )}
+      >
+        <MessageCircle size={8} className="text-white" fill="currentColor" />
+      </span>
+    </div>
+  );
+}
+
+function MessageBubble({ message }: { message: Message }) {
+  const outbound = message.direction === "OUTBOUND";
+  return (
+    <div className={cn("flex", outbound ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm",
+          outbound
+            ? "bg-lime-100 dark:bg-lime-900/25 text-foreground rounded-br-md"
+            : "bg-muted text-foreground rounded-bl-md"
+        )}
+      >
+        {message.mediaUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={message.mediaUrl} alt="" className="rounded-lg mb-1.5 max-w-full max-h-72 object-cover" />
+        )}
+        {message.content && <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>}
+        <div className={cn("flex items-center gap-1 mt-1", outbound ? "justify-end" : "justify-start")}>
+          <span className="text-[10px] text-muted-foreground">{clockTime(message.sentAt)}</span>
+          {outbound && <CheckCheck size={13} className="text-muted-foreground" />}
         </div>
       </div>
     </div>
