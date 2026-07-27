@@ -306,6 +306,20 @@ export class AuthService {
   }
 
   /**
+   * Update basic profile fields (name, avatar image). Email is managed by
+   * whichever provider authenticated the user, so it's read-only here.
+   */
+  static async updateProfile(userId: string, data: { name?: string; image?: string }) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data,
+      select: { id: true, email: true, name: true, image: true },
+    });
+
+    return user;
+  }
+
+  /**
    * Verify email (placeholder for future email verification)
    */
   static async verifyEmail(email: string) {

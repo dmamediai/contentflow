@@ -1,212 +1,256 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { User, Bell, Lock, Palette, LogOut } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { api } from "@/lib/api-client";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { ExternalLink, Loader2 } from "lucide-react";
+import { getInitials } from "@/lib/utils";
+
+type Tab = "usage" | "billing" | "profile" | "notifications" | "slack" | "ai" | "danger";
+
+const TABS: { id: Tab; label: string; external?: boolean; danger?: boolean }[] = [
+  { id: "usage", label: "Usage", external: true },
+  { id: "billing", label: "Billing", external: true },
+  { id: "profile", label: "Profile" },
+  { id: "notifications", label: "Notifications" },
+  { id: "slack", label: "Slack" },
+  { id: "ai", label: "AI providers" },
+  { id: "danger", label: "Danger Zone", danger: true },
+];
+
+interface Subscription {
+  plan: string;
+  status: string;
+  postsUsed: number;
+  postsLimit: number;
+  aiCreditsUsed: number;
+  aiCreditsLimit: number;
+  teamMembersUsed: number;
+  teamMembersLimit: number;
+}
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState("profile");
+  const { data: session, update: updateSession } = useSession();
+  const [tab, setTab] = useState<Tab>("profile");
+  const [name, setName] = useState(session?.user?.name || "");
+  const [image, setImage] = useState(session?.user?.image || "");
+  const [saving, setSaving] = useState(false);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [teamId, setTeamId] = useState<string | null>(null);
 
-  const tabs = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "security", label: "Security", icon: Lock },
-    { id: "appearance", label: "Appearance", icon: Palette },
-  ];
+  useEffect(() => {
+    setName(session?.user?.name || "");
+    setImage(session?.user?.image || "");
+  }, [session]);
+
+  const loadSubscription = useCallback(async () => {
+    try {
+      const { data: teamsRes } = await api.get("/api/teams");
+      const firstTeam = teamsRes.data[0];
+      if (!firstTeam) return;
+      setTeamId(firstTeam.id);
+      const { data } = await api.get(`/api/teams/${firstTeam.id}/subscription`);
+      setSubscription(data.data);
+    } catch {
+      // no team yet - leave usage/billing empty
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "usage" || tab === "billing") loadSubscription();
+  }, [tab, loadSubscription]);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      await api.patch("/api/auth/profile", { name, ...(image && { image }) });
+      await updateSession({ name, image });
+      toast.success("Profile updated");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!teamId) return;
+    if (!confirm("Delete this team and all its data? This cannot be undone.")) return;
+    try {
+      await api.delete(`/api/teams/${teamId}`);
+      toast.success("Team deleted");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.error?.message || "Failed to delete team");
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and preferences</p>
+        <h1 className="text-2xl font-bold">Settings</h1>
+        <p className="text-muted-foreground mt-1">Manage your profile, notifications, and account</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Tabs */}
-        <div className="md:col-span-1">
-          <div className="space-y-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition ${
-                    activeTab === tab.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted hover:bg-muted/80"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{tab.label}</span>
-                </button>
-              );
-            })}
+      <div className="border-b flex gap-6 flex-wrap">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`pb-3 text-sm font-medium border-b-2 -mb-px flex items-center gap-1 ${
+              tab === t.id
+                ? t.danger
+                  ? "border-destructive text-destructive"
+                  : "border-foreground text-foreground"
+                : t.danger
+                  ? "border-transparent text-destructive/80"
+                  : "border-transparent text-muted-foreground"
+            }`}
+          >
+            {t.label}
+            {t.external && <ExternalLink size={12} />}
+          </button>
+        ))}
+      </div>
+
+      {tab === "profile" && (
+        <Card className="p-6 space-y-6 max-w-2xl">
+          <div>
+            <h2 className="font-semibold">Profile</h2>
+            <p className="text-sm text-muted-foreground">Manage your account information</p>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="md:col-span-3">
-          {activeTab === "profile" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>Update your personal information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Your name"
-                    className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Email</label>
-                  <input
-                    type="email"
-                    placeholder="your@email.com"
-                    className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Bio</label>
-                  <textarea
-                    placeholder="Tell us about yourself"
-                    rows={4}
-                    className="w-full mt-1 px-4 py-2 border rounded-lg bg-background"
-                  />
-                </div>
-                <Button onClick={() => toast.success("Profile updated!")}>
-                  Save Changes
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+          <div className="space-y-2">
+            <Label>Avatar</Label>
+            <div className="flex items-center gap-3">
+              <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold overflow-hidden shrink-0">
+                {image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={image} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  getInitials(name)
+                )}
+              </div>
+              <Input
+                placeholder="Image URL"
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                className="max-w-sm"
+              />
+            </div>
+          </div>
 
-          {activeTab === "notifications" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>Control how you receive notifications</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Push Notifications</p>
-                    <p className="text-sm text-muted-foreground">Browser push notifications</p>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">Weekly Digest</p>
-                    <p className="text-sm text-muted-foreground">Get a weekly summary</p>
-                  </div>
-                  <input type="checkbox" className="w-5 h-5" />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="settings-name">Name</Label>
+            <div className="flex gap-2">
+              <Input id="settings-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Button onClick={handleSaveProfile} disabled={saving} className="shrink-0">
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save
+              </Button>
+            </div>
+          </div>
 
-          {activeTab === "security" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>Manage your account security</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="font-medium mb-3">Change Password</p>
-                  <input
-                    type="password"
-                    placeholder="Current password"
-                    className="w-full mb-2 px-4 py-2 border rounded-lg bg-background"
-                  />
-                  <input
-                    type="password"
-                    placeholder="New password"
-                    className="w-full mb-2 px-4 py-2 border rounded-lg bg-background"
-                  />
-                  <input
-                    type="password"
-                    placeholder="Confirm password"
-                    className="w-full px-4 py-2 border rounded-lg bg-background"
-                  />
-                  <Button className="mt-3" onClick={() => toast.success("Password updated!")}>
-                    Update Password
-                  </Button>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <p className="font-medium mb-2">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground mb-3">Add an extra layer of security</p>
-                  <Button variant="outline">Enable 2FA</Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <div className="space-y-2">
+            <Label>Email</Label>
+            <Input value={session?.user?.email || ""} disabled className="bg-muted" />
+            <p className="text-xs text-muted-foreground">
+              Email is managed by your login provider and can&apos;t be changed here.
+            </p>
+          </div>
+        </Card>
+      )}
 
-          {activeTab === "appearance" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Appearance</CardTitle>
-                <CardDescription>Customize your interface</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <p className="font-medium">Theme</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button className="p-3 border-2 border-primary rounded-lg">Light</button>
-                    <button className="p-3 border rounded-lg hover:border-primary">Dark</button>
-                    <button className="p-3 border rounded-lg hover:border-primary">Auto</button>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium mb-3">Compact Mode</p>
-                  <div className="flex items-center justify-between p-3 border rounded-lg">
-                    <span className="text-sm">Use compact layout</span>
-                    <input type="checkbox" className="w-5 h-5" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      {(tab === "usage" || tab === "billing") && (
+        <Card className="p-6 max-w-2xl">
+          {!subscription ? (
+            <p className="text-sm text-muted-foreground">No subscription data yet.</p>
+          ) : tab === "usage" ? (
+            <div className="space-y-4">
+              <h2 className="font-semibold">Usage this period</h2>
+              <UsageBar label="Posts" used={subscription.postsUsed} limit={subscription.postsLimit} />
+              <UsageBar label="AI credits" used={subscription.aiCreditsUsed} limit={subscription.aiCreditsLimit} />
+              <UsageBar
+                label="Team members"
+                used={subscription.teamMembersUsed}
+                limit={subscription.teamMembersLimit}
+              />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <h2 className="font-semibold">Plan</h2>
+              <p className="text-2xl font-bold">{subscription.plan}</p>
+              <p className="text-sm text-muted-foreground">Status: {subscription.status}</p>
+              <Button variant="outline" onClick={() => toast.info("Billing portal not configured yet")}>
+                Manage billing
+              </Button>
+            </div>
           )}
-        </div>
+        </Card>
+      )}
+
+      {tab === "notifications" && (
+        <Card className="p-6 max-w-2xl text-sm text-muted-foreground">
+          Notification preferences aren&apos;t configurable yet.
+        </Card>
+      )}
+
+      {tab === "slack" && (
+        <Card className="p-6 max-w-2xl text-sm text-muted-foreground">
+          No Slack workspace connected yet.
+        </Card>
+      )}
+
+      {tab === "ai" && (
+        <Card className="p-6 max-w-2xl text-sm text-muted-foreground">
+          AI providers (OpenAI, Anthropic, Gemini) are configured via server environment variables, not per-team yet.
+        </Card>
+      )}
+
+      {tab === "danger" && (
+        <Card className="p-6 max-w-2xl border-destructive/30 space-y-4">
+          <h2 className="font-semibold text-destructive">Danger Zone</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Sign out</p>
+              <p className="text-xs text-muted-foreground">End your current session on this device.</p>
+            </div>
+            <Button variant="outline" onClick={() => signOut()}>
+              Sign out
+            </Button>
+          </div>
+          <div className="flex items-center justify-between border-t pt-4">
+            <div>
+              <p className="text-sm font-medium">Delete team</p>
+              <p className="text-xs text-muted-foreground">Permanently deletes this team and all its data.</p>
+            </div>
+            <Button variant="destructive" onClick={handleDeleteTeam} disabled={!teamId}>
+              Delete team
+            </Button>
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span>{label}</span>
+        <span className="text-muted-foreground">
+          {used} / {limit || "∞"}
+        </span>
       </div>
-
-      {/* Danger Zone */}
-      <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
-        <CardHeader>
-          <CardTitle className="text-red-600 dark:text-red-400">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            variant="outline"
-            className="flex items-center gap-2 text-red-600 border-red-200 hover:bg-red-50"
-            onClick={() => toast.info("Sign out functionality - backend required")}
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full text-red-600 border-red-200 hover:bg-red-50"
-            onClick={() => toast.error("Account deletion - backend required")}
-          >
-            Delete Account
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="w-full bg-muted rounded-full h-2">
+        <div className="bg-primary h-2 rounded-full" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }

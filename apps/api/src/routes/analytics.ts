@@ -118,6 +118,24 @@ router.get(
   })
 );
 
+// GET /api/analytics/platform-breakdown - Get published-post % breakdown by platform
+router.get(
+  "/platform-breakdown",
+  authenticateJWT,
+  teamContext,
+  authorize("analytics:read"),
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const days = parseInt(req.query.days as string) || 30;
+
+    const breakdown = await AnalyticsService.getPlatformBreakdown(req.user!.teamId!, days);
+
+    res.json({
+      success: true,
+      data: breakdown,
+    });
+  })
+);
+
 // GET /api/analytics/growth - Get audience growth data
 router.get(
   "/growth",

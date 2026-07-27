@@ -65,6 +65,15 @@ export class TeamService {
         },
       });
 
+      // Every team starts with a Default profile (public API tenant boundary)
+      await tx.profile.create({
+        data: {
+          teamId: newTeam.id,
+          name: "Default",
+          isDefault: true,
+        },
+      });
+
       return newTeam;
     });
 

@@ -1,5 +1,4 @@
 import { Sidebar } from "@/components/dashboard/sidebar";
-import { Header } from "@/components/dashboard/header";
 
 export default function DashboardLayout({
   children,
@@ -14,10 +13,6 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header />
-
-        {/* Content */}
         <main className="flex-1 overflow-auto">
           <div className="p-8">{children}</div>
         </main>

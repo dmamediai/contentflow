@@ -507,12 +507,13 @@ export class OAuthService {
     userId: string,
     provider: OAuthProvider,
     token: OAuthToken,
-    userInfo: any
+    userInfo: any,
+    profileId: string
   ) {
     // Check if account already exists
     const existing = await prisma.socialAccount.findFirst({
       where: {
-        teamId,
+        profileId,
         platform: provider,
         platformAccountId: userInfo.id,
       },
@@ -537,6 +538,7 @@ export class OAuthService {
     return prisma.socialAccount.create({
       data: {
         teamId,
+        profileId,
         platform: provider,
         platformAccountId: userInfo.id,
         displayName: userInfo.name,
@@ -571,19 +573,21 @@ export class OAuthService {
   }
 
   /**
-   * Get connected accounts for team
+   * Get connected accounts for team, optionally scoped to a profile
    */
-  static async getConnectedAccounts(teamId: string) {
+  static async getConnectedAccounts(teamId: string, profileId?: string) {
     return prisma.socialAccount.findMany({
-      where: { teamId },
+      where: { teamId, ...(profileId && { profileId }) },
       select: {
         id: true,
+        profileId: true,
         platform: true,
         displayName: true,
         username: true,
         profileImage: true,
         connectedAt: true,
       },
+      orderBy: { connectedAt: "desc" },
     });
   }
 }

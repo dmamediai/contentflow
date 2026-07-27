@@ -78,6 +78,13 @@ import publishingRoutes from "./routes/publishing";
 import analyticsRoutes from "./routes/analytics";
 import oauthRoutes from "./routes/oauth";
 import adminRoutes from "./routes/admin";
+import apiKeysRoutes from "./routes/api-keys";
+import profilesRoutes from "./routes/profiles";
+import inboxRoutes from "./routes/inbox";
+import webhooksRoutes from "./routes/webhooks";
+import logsRoutes from "./routes/logs";
+import v1Routes from "./routes/v1";
+import { startPostSchedulerJob } from "./jobs/post-scheduler-job";
 
 app.use("/api/auth", authRoutes);
 app.use("/api/teams", teamsRoutes);
@@ -90,6 +97,12 @@ app.use("/api/publishing", publishingRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/oauth", oauthRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/api-keys", apiKeysRoutes);
+app.use("/api/profiles", profilesRoutes);
+app.use("/api/inbox", inboxRoutes);
+app.use("/api/webhooks", webhooksRoutes);
+app.use("/api/logs", logsRoutes);
+app.use("/api/v1", v1Routes);
 // app.use("/api/posts", postsRoutes);
 // app.use("/api/ai", aiRoutes);
 // app.use("/api/media", mediaRoutes);
@@ -114,6 +127,7 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, () => {
   logger.info(`Server running on http://localhost:${PORT} [${NODE_ENV}]`);
+  startPostSchedulerJob();
 });
 
 // Graceful shutdown

@@ -4,23 +4,12 @@ import { v4 as uuidv4 } from "uuid";
 import { authenticateJWT, AuthRequest } from "../middleware/auth";
 import { teamContext, authorize } from "../middleware/rbac";
 import { OAuthService } from "../services/oauth.service";
+import { ProfileService } from "../services/profile.service";
+import { createOAuthState, consumeOAuthState } from "../lib/oauth-state-store";
 import { logger } from "../lib/logger";
 import prisma from "../lib/db";
 
 const router = Router();
-
-// Store OAuth states temporarily (in production, use Redis)
-const oauthStates = new Map<string, { provider: string; teamId: string; userId: string; expiresAt: Date }>();
-
-// Clean up expired states every minute
-setInterval(() => {
-  const now = new Date();
-  for (const [state, data] of oauthStates.entries()) {
-    if (data.expiresAt < now) {
-      oauthStates.delete(state);
-    }
-  }
-}, 60000);
 
 const asyncHandler = (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -41,16 +30,17 @@ router.get(
       return res.status(400).json({ error: "Invalid provider" });
     }
 
+    // Resolve the team's Default profile - the dashboard flow doesn't expose
+    // profile selection yet, so connected accounts land there.
+    const defaultProfile = await ProfileService.getDefaultProfile(req.user!.teamId!);
+
     // Generate state
     const state = uuidv4();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Store state
-    oauthStates.set(state, {
+    createOAuthState(state, {
       provider,
       teamId: req.user!.teamId!,
       userId: req.user!.id!,
-      expiresAt,
+      profileId: defaultProfile.id,
     });
 
     // Generate auth URL
@@ -91,7 +81,7 @@ router.get(
     }
 
     // Validate state
-    const stateData = oauthStates.get(state);
+    const stateData = consumeOAuthState(state);
     if (!stateData || stateData.provider !== provider) {
       logger.error({
         action: "oauth.invalid_state",
@@ -101,9 +91,6 @@ router.get(
     }
 
     try {
-      // Remove used state
-      oauthStates.delete(state);
-
       // Exchange code for token
       const token = await OAuthService.exchangeCodeForToken(provider as any, code);
 
@@ -116,7 +103,8 @@ router.get(
         stateData.userId,
         provider as any,
         token,
-        userInfo
+        userInfo,
+        stateData.profileId
       );
 
       logger.info({
@@ -124,6 +112,17 @@ router.get(
         provider,
         teamId: stateData.teamId,
         accountId: account.id,
+      });
+
+      const { AuditLogService } = await import("../services/audit-log.service");
+      AuditLogService.record({
+        teamId: stateData.teamId,
+        userId: stateData.userId,
+        action: "account.connected",
+        resource: "Connections",
+        resourceId: account.id,
+        platform: provider as any,
+        message: `Connected ${account.displayName} (@${account.username})`,
       });
 
       // Redirect back to frontend with success
@@ -134,8 +133,78 @@ router.get(
         provider,
         error: error.message,
       });
+
+      const { AuditLogService } = await import("../services/audit-log.service");
+      AuditLogService.record({
+        teamId: stateData.teamId,
+        userId: stateData.userId,
+        action: "account.connect_failed",
+        resource: "Connections",
+        status: "FAILED",
+        platform: provider as any,
+        message: error.message,
+      });
+
       res.redirect(`/social/connect?error=${error.message}`);
     }
+  })
+);
+
+const blueskyCredentialsSchema = z.object({
+  identifier: z.string().min(1),
+  appPassword: z.string().min(1),
+  profileId: z.string().min(1).optional(),
+});
+
+// POST /api/oauth/bluesky/credentials - Connect Bluesky via handle + App Password
+router.post(
+  "/bluesky/credentials",
+  authenticateJWT,
+  teamContext,
+  authorize("social:write"),
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const body = blueskyCredentialsSchema.parse(req.body);
+    const { BlueskyService } = await import("../services/bluesky.service");
+
+    const profile = body.profileId
+      ? await ProfileService.getProfile(req.user!.teamId!, body.profileId)
+      : await ProfileService.getDefaultProfile(req.user!.teamId!);
+
+    const session = await BlueskyService.createSession(body.identifier, body.appPassword);
+
+    const existing = await prisma.socialAccount.findFirst({
+      where: { profileId: profile.id, platform: "BLUESKY", platformAccountId: session.did },
+    });
+
+    const account = existing
+      ? await prisma.socialAccount.update({
+          where: { id: existing.id },
+          data: {
+            accessToken: session.accessJwt,
+            refreshToken: session.refreshJwt,
+            displayName: session.handle,
+            username: session.handle,
+            meta: { did: session.did, handle: session.handle },
+          },
+        })
+      : await prisma.socialAccount.create({
+          data: {
+            teamId: req.user!.teamId!,
+            profileId: profile.id,
+            platform: "BLUESKY",
+            platformAccountId: session.did,
+            displayName: session.handle,
+            username: session.handle,
+            profileUrl: `https://bsky.app/profile/${session.handle}`,
+            accessToken: session.accessJwt,
+            refreshToken: session.refreshJwt,
+            meta: { did: session.did, handle: session.handle },
+          },
+        });
+
+    logger.info({ action: "oauth.bluesky_connected", teamId: req.user!.teamId, accountId: account.id });
+
+    res.status(201).json({ success: true, data: account });
   })
 );
 
@@ -146,7 +215,8 @@ router.get(
   teamContext,
   authorize("social:read"),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const accounts = await OAuthService.getConnectedAccounts(req.user!.teamId!);
+    const profileId = req.query.profileId as string | undefined;
+    const accounts = await OAuthService.getConnectedAccounts(req.user!.teamId!, profileId);
 
     res.json({
       success: true,
@@ -171,6 +241,15 @@ router.delete(
       action: "oauth.account_disconnected",
       teamId: req.user!.teamId,
       accountId: req.params.accountId,
+    });
+
+    const { AuditLogService } = await import("../services/audit-log.service");
+    AuditLogService.record({
+      teamId: req.user!.teamId!,
+      userId: req.user!.id,
+      action: "account.disconnected",
+      resource: "Connections",
+      resourceId: req.params.accountId,
     });
 
     res.json({

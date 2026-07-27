@@ -272,23 +272,73 @@ export class AnalyticsService {
   }
 
   /**
-   * Get audience growth data
+   * Get audience growth data, derived from real FOLLOWER_GAINED/FOLLOWER_LOST
+   * analytics events. Platforms don't push follower deltas yet (nothing writes
+   * these events today), so this is genuinely empty until that's wired up -
+   * intentionally not fabricated.
    */
   static async getAudienceGrowth(teamId: string, days: number = 90) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const events = await prisma.analyticsEvent.findMany({
+      where: {
+        teamId,
+        eventType: { in: ["FOLLOWER_GAINED", "FOLLOWER_LOST"] },
+        eventDate: { gte: startDate },
+      },
+      orderBy: { eventDate: "asc" },
+    });
+
+    const byDate = new Map<string, number>();
+    for (const event of events) {
+      const key = event.eventDate.toISOString().split("T")[0];
+      const delta = event.eventType === "FOLLOWER_GAINED" ? event.value : -event.value;
+      byDate.set(key, (byDate.get(key) || 0) + delta);
+    }
+
     const data = [];
+    let cumulative = 0;
     for (let i = days; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-
-      // TODO: Fetch actual follower counts from social media APIs
-      // For now, return mock data
-      data.push({
-        date: date.toISOString().split("T")[0],
-        followers: 1000 + i * 10,
-      });
+      const key = date.toISOString().split("T")[0];
+      cumulative += byDate.get(key) || 0;
+      data.push({ date: key, followers: cumulative });
     }
 
     return data;
+  }
+
+  /**
+   * Get published-post breakdown by platform, as percentages of the total -
+   * used for the platform-distribution chart instead of hardcoded numbers.
+   */
+  static async getPlatformBreakdown(teamId: string, days: number = 30) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const posts = await prisma.post.findMany({
+      where: { teamId, status: "PUBLISHED", publishedAt: { gte: startDate } },
+      include: { socialAccounts: { select: { platform: true } } },
+    });
+
+    const counts: Record<string, number> = {};
+    let total = 0;
+    for (const post of posts) {
+      for (const account of post.socialAccounts) {
+        counts[account.platform] = (counts[account.platform] || 0) + 1;
+        total += 1;
+      }
+    }
+
+    return Object.entries(counts)
+      .map(([platform, count]) => ({
+        platform,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 10000) / 100 : 0,
+      }))
+      .sort((a, b) => b.count - a.count);
   }
 
   /**

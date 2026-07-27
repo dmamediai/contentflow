@@ -142,6 +142,25 @@ router.get(
   })
 );
 
+const updateProfileSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  image: z.string().url().optional(),
+});
+
+// PATCH /api/auth/profile - Update the current user's name/avatar
+router.patch(
+  "/profile",
+  authenticateJWT,
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    const body = updateProfileSchema.parse(req.body);
+    const user = await AuthService.updateProfile(req.user!.id, body);
+
+    logger.info({ action: "user.profile_updated", userId: req.user!.id });
+
+    res.json({ success: true, data: { user } });
+  })
+);
+
 // POST /api/auth/logout - Logout user
 router.post(
   "/logout",

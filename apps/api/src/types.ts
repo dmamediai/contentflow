@@ -81,21 +81,28 @@ export class ApiError extends Error {
   public code: string;
   public details?: any;
 
+  /**
+   * Every call site in this codebase uses new ApiError(code, message, statusCode) -
+   * e.g. new ApiError(ErrorCodes.NOT_FOUND, "Team not found", 404). A numeric
+   * first argument is also accepted (statusCode, message) for callers that
+   * don't need a specific error code.
+   */
   constructor(
-    statusCodeOrMessage: number | string,
-    codeOrMessage?: string,
-    message?: string
+    codeOrStatusCode: string | number,
+    message?: string,
+    statusCode?: number,
+    details?: any
   ) {
-    // Handle both old and new signatures
-    if (typeof statusCodeOrMessage === 'number') {
-      super(message || codeOrMessage || '');
-      this.statusCode = statusCodeOrMessage;
-      this.code = codeOrMessage || 'INTERNAL_SERVER_ERROR';
+    if (typeof codeOrStatusCode === "number") {
+      super(message || "");
+      this.statusCode = codeOrStatusCode;
+      this.code = "INTERNAL_SERVER_ERROR";
     } else {
-      super(statusCodeOrMessage);
-      this.statusCode = 500;
-      this.code = codeOrMessage || 'INTERNAL_SERVER_ERROR';
+      super(message || codeOrStatusCode);
+      this.statusCode = statusCode ?? 500;
+      this.code = codeOrStatusCode;
     }
+    this.details = details;
     this.name = "ApiError";
   }
 }

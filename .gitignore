@@ -72,3 +72,9 @@ prisma/migrations/
 *.db
 *.sqlite
 *.sqlite3
+
+# Vendored reference repos (cloned from zernio-dev org, 311MB, each has own .git)
+services/
+
+# TypeScript build info
+*.tsbuildinfo

@@ -15,6 +15,8 @@ export type Permission =
   | "media:read"
   | "media:write"
   | "media:delete"
+  | "social:read"
+  | "social:write"
   | "analytics:read"
   | "subscriptions:read"
   | "subscriptions:write"
@@ -36,6 +38,8 @@ const rolePermissions: Record<Role, Permission[]> = {
     "media:read",
     "media:write",
     "media:delete",
+    "social:read",
+    "social:write",
     "analytics:read",
     "subscriptions:read",
     "subscriptions:write",
@@ -53,6 +57,8 @@ const rolePermissions: Record<Role, Permission[]> = {
     "media:read",
     "media:write",
     "media:delete",
+    "social:read",
+    "social:write",
     "analytics:read",
     "subscriptions:read",
     "admin:read",
@@ -64,9 +70,11 @@ const rolePermissions: Record<Role, Permission[]> = {
     "posts:publish",
     "media:read",
     "media:write",
+    "social:read",
+    "social:write",
     "analytics:read",
   ],
-  VIEWER: ["team:read", "posts:read", "analytics:read"],
+  VIEWER: ["team:read", "posts:read", "social:read", "analytics:read"],
 };
 
 export function authorize(...requiredPermissions: Permission[]) {
