@@ -28,7 +28,7 @@ type GenType = "image" | "video";
 
 const MODES: Record<GenType, string[]> = {
   image: ["Vivid", "Natural"],
-  video: ["Max Watch Time", "Cinematic", "Quick"],
+  video: ["Fast", "Pro", "Mini"],
 };
 
 const IMAGE_RATIOS = ["1:1", "9:16", "16:9"];
