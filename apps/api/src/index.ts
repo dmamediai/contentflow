@@ -85,6 +85,7 @@ import webhooksRoutes from "./routes/webhooks";
 import logsRoutes from "./routes/logs";
 import cronRoutes from "./routes/cron";
 import generateRoutes from "./routes/generate";
+import mcpRpcRoutes from "./routes/mcp-rpc";
 import v1Routes from "./routes/v1";
 import { startPostSchedulerJob } from "./jobs/post-scheduler-job";
 
@@ -106,6 +107,7 @@ app.use("/api/webhooks", webhooksRoutes);
 app.use("/api/logs", logsRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/generate", generateRoutes);
+app.use("/mcp", mcpRpcRoutes);
 app.use("/api/v1", v1Routes);
 // app.use("/api/posts", postsRoutes);
 // app.use("/api/ai", aiRoutes);
