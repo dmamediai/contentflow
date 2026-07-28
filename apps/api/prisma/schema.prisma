@@ -112,6 +112,7 @@ model Team {
   webhooks        Webhook[]
   conversations   Conversation[]
   generations     Generation[]
+  keywordReplies  KeywordReply[]
 
   creator User @relation(fields: [createdBy], references: [id])
 
@@ -266,6 +267,7 @@ enum SocialPlatform {
   TIKTOK
   YOUTUBE
   BLUESKY
+  WHATSAPP
 }
 
 // ============================================================================
@@ -815,4 +817,33 @@ enum GenerationStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+// ============================================================================
+// WHATSAPP AUTOMATION - keyword auto-reply rules (ChatSyncs-style)
+// ============================================================================
+
+model KeywordReply {
+  id               String           @id @default(cuid())
+  teamId           String
+  socialAccountId  String?
+  keyword          String
+  matchType        KeywordMatchType @default(CONTAINS)
+  responseText     String?          @db.Text
+  responseMediaUrl String?          @db.Text
+  isActive         Boolean          @default(true)
+  hitCount         Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
+  @@index([isActive])
+}
+
+enum KeywordMatchType {
+  EXACT
+  CONTAINS
+  STARTS_WITH
 }
